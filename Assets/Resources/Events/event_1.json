@@ -1,0 +1,23 @@
+{
+  "id": "event_1",
+  "title": "Entry Into Jerusalem",
+  "isCanonical": true,
+  "text": "The jump worked.\n\nYou stagger into open sunlight, heart hammering. The dust is real. The noise is real. Crowds line the road ahead, waving palm branches as Jesus rides a young donkey through the gates of Jerusalem. The air smells of incense and animal sweat and warm stone. Children are running alongside the procession, laughing.\n\nYou are here. This is the week everything changes. You know exactly how it ends.\n\nNo one around you does.\n\nWhat do you do?",
+  "choices": [
+    {
+      "text": "Observe quietly. Do not draw attention to yourself.",
+      "effects": { "faithVsSkepticism": 5, "literalVsSymbolic": 0, "trustInAuthority": 0, "proJesus": 0, "antiJesus": 0, "prophecyIntegrity": 0 },
+      "nextEventId": "event_2"
+    },
+    {
+      "text": "Join the crowd, clapping and cheering — strengthen his public support.",
+      "effects": { "faithVsSkepticism": 10, "literalVsSymbolic": 0, "trustInAuthority": -5, "proJesus": 15, "antiJesus": 0, "prophecyIntegrity": -8 },
+      "nextEventId": "event_2"
+    },
+    {
+      "text": "Find a way to speak to one of the disciples. Try to warn them that danger is close.",
+      "effects": { "faithVsSkepticism": 5, "literalVsSymbolic": -5, "trustInAuthority": -5, "proJesus": 5, "antiJesus": 0, "prophecyIntegrity": -15 },
+      "nextEventId": "event_2"
+    }
+  ]
+}

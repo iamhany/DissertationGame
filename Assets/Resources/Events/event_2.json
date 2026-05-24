@@ -1,0 +1,23 @@
+{
+  "id": "event_2",
+  "title": "The Temple Conflict",
+  "isCanonical": true,
+  "text": "Jesus walks into the Temple courts and overturns the tables of the money changers. Coins scatter. Doves fly in panic. The Temple merchants shout. Pharisees watch with cold, calculating eyes.\n\nYou notice several of them pulling aside one of their scribes and speaking in hushed, urgent tones. They are taking notes. They are building a case.\n\nThe crowd around Jesus is thrilled. He is popular. But the wrong people are paying very close attention now.",
+  "choices": [
+    {
+      "text": "Watch and say nothing. This had to happen.",
+      "effects": { "faithVsSkepticism": 5, "literalVsSymbolic": 5, "trustInAuthority": 5, "proJesus": 0, "antiJesus": 0, "prophecyIntegrity": 0 },
+      "nextEventId": "event_3"
+    },
+    {
+      "text": "Try to warn Jesus that the Pharisees are documenting everything. Urge him to be careful.",
+      "effects": { "faithVsSkepticism": 0, "literalVsSymbolic": -5, "trustInAuthority": -10, "proJesus": 10, "antiJesus": 0, "prophecyIntegrity": -12 },
+      "nextEventId": "event_3"
+    },
+    {
+      "text": "Approach the Pharisees yourself. Try to reason with them. Defend Jesus publicly.",
+      "effects": { "faithVsSkepticism": -5, "literalVsSymbolic": -5, "trustInAuthority": -15, "proJesus": 15, "antiJesus": -10, "prophecyIntegrity": -18 },
+      "nextEventId": "event_3"
+    }
+  ]
+}

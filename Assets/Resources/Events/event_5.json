@@ -1,0 +1,23 @@
+{
+  "id": "event_5",
+  "title": "The Garden of Gethsemane",
+  "isCanonical": true,
+  "text": "Night. The garden is dark and fragrant with olive trees. Jesus prays alone on his knees while the disciples sleep nearby. You hear footsteps — torches approaching through the trees. A crowd of Temple guards, armed. And at the front: Judas.\n\nHe walks toward Jesus. He is about to give the sign — a kiss on the cheek — that will tell the guards which man to arrest.\n\nYou have seconds. This is the moment the timeline turns on.",
+  "choices": [
+    {
+      "text": "Step back into the shadows. Let it happen.",
+      "effects": { "faithVsSkepticism": 10, "literalVsSymbolic": 10, "trustInAuthority": 10, "proJesus": 0, "antiJesus": 0, "prophecyIntegrity": 0 },
+      "nextEventId": "event_6"
+    },
+    {
+      "text": "Wake the disciples. Shout to warn Jesus that the guards are here.",
+      "effects": { "faithVsSkepticism": -10, "literalVsSymbolic": -10, "trustInAuthority": -15, "proJesus": 10, "antiJesus": -5, "prophecyIntegrity": -20 },
+      "nextEventId": "event_6"
+    },
+    {
+      "text": "Step between Judas and Jesus. Block the kiss. Tell the guards they have the wrong man.",
+      "effects": { "faithVsSkepticism": -20, "literalVsSymbolic": -15, "trustInAuthority": -25, "proJesus": 20, "antiJesus": -15, "prophecyIntegrity": -30 },
+      "nextEventId": "event_6"
+    }
+  ]
+}

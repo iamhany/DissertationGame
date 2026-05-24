@@ -1,0 +1,18 @@
+{
+  "id": "event_0",
+  "title": "Doubt In The Present",
+  "isCanonical": true,
+  "text": "Late at night. Your room is quiet. A half-read Bible sits on your desk, a coffee gone cold beside it.\n\nYou close it and stare at the ceiling.\n\n\"If I could just have been there,\" you think. \"If I could have seen him with my own eyes, I wouldn't keep second-guessing everything. I wouldn't have these doubts.\"\n\nAnd then you look at the device. The prototype your colleague dared you to test. The one that is — impossibly — supposed to bridge time.\n\nA single destination sits already entered in the console: Jerusalem. 30 AD.\n\nDo you go?",
+  "choices": [
+    {
+      "text": "Yes. I need to see for myself. No more doubts from a distance.",
+      "effects": { "faithVsSkepticism": 0, "literalVsSymbolic": 0, "trustInAuthority": 0, "proJesus": 0, "antiJesus": 0, "prophecyIntegrity": 0 },
+      "nextEventId": "event_1"
+    },
+    {
+      "text": "I hesitate — but doubt is exactly why I have to go.",
+      "effects": { "faithVsSkepticism": -5, "literalVsSymbolic": -5, "trustInAuthority": 0, "proJesus": 0, "antiJesus": 0, "prophecyIntegrity": 0 },
+      "nextEventId": "event_1"
+    }
+  ]
+}

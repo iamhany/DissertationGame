@@ -1,0 +1,23 @@
+{
+  "id": "event_3",
+  "title": "The Betrayal Formation",
+  "isCanonical": true,
+  "text": "You catch a glimpse of it happening in a side street near the Temple treasury. Judas Iscariot slips away from the other disciples. He meets with two men in dark robes — Temple officials. Coins change hands. Thirty silver pieces. He nods. He smiles thinly.\n\nNo one else has seen this. The other disciples are a street away, talking among themselves. You are the only witness.\n\nThe betrayal is being arranged right now, in front of you.",
+  "choices": [
+    {
+      "text": "Do nothing. This was always going to happen.",
+      "effects": { "faithVsSkepticism": 10, "literalVsSymbolic": 10, "trustInAuthority": 5, "proJesus": 0, "antiJesus": 0, "prophecyIntegrity": 0 },
+      "nextEventId": "event_4"
+    },
+    {
+      "text": "Confront Judas directly. Tell him you know what he has agreed to do.",
+      "effects": { "faithVsSkepticism": -5, "literalVsSymbolic": -5, "trustInAuthority": -10, "proJesus": 5, "antiJesus": -5, "prophecyIntegrity": -20 },
+      "nextEventId": "event_4"
+    },
+    {
+      "text": "Run to warn Jesus immediately — tell him Judas has made an agreement with his enemies.",
+      "effects": { "faithVsSkepticism": -10, "literalVsSymbolic": -10, "trustInAuthority": -15, "proJesus": 10, "antiJesus": -10, "prophecyIntegrity": -25 },
+      "nextEventId": "event_4"
+    }
+  ]
+}

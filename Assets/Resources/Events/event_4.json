@@ -1,0 +1,23 @@
+{
+  "id": "event_4",
+  "title": "The Last Supper",
+  "isCanonical": true,
+  "text": "You have found a way into the upper room. The disciples recline at the long table. Jesus breaks bread, passes wine, speaks quietly of remembrance and sacrifice. There is a heaviness in the room — not grief yet, but something close to it.\n\nJesus speaks: 'One of you will betray me.' The disciples look at each other in shock and confusion.\n\nYou know the answer. You know more than anyone in this room.\n\nAnd you notice Jesus glancing — just for a moment — directly at you, the stranger at the edge of the gathering.",
+  "choices": [
+    {
+      "text": "Say nothing. Sit in silence and bear witness.",
+      "effects": { "faithVsSkepticism": 10, "literalVsSymbolic": 10, "trustInAuthority": 0, "proJesus": 0, "antiJesus": 0, "prophecyIntegrity": 0 },
+      "nextEventId": "event_5"
+    },
+    {
+      "text": "Quietly tell Jesus: 'It is Judas. He has already agreed. You should leave the city tonight.'",
+      "effects": { "faithVsSkepticism": -15, "literalVsSymbolic": -10, "trustInAuthority": -10, "proJesus": 10, "antiJesus": 0, "prophecyIntegrity": -22 },
+      "nextEventId": "event_5"
+    },
+    {
+      "text": "Speak out to the whole table — name Judas publicly and urge the disciples to stop him.",
+      "effects": { "faithVsSkepticism": -20, "literalVsSymbolic": -15, "trustInAuthority": -20, "proJesus": 15, "antiJesus": -5, "prophecyIntegrity": -28 },
+      "nextEventId": "event_5"
+    }
+  ]
+}
