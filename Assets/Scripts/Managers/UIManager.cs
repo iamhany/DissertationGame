@@ -22,12 +22,15 @@ public class UIManager : MonoBehaviour
         // Inspector references to scene Canvas objects are always valid.
     }
 
-    void OnEnable()
+    void Start()
     {
-        // Guard against direct scene-play in the Editor where DontDestroyOnLoad
-        // managers have not been initialised yet.
-        if (EventManager.Instance == null) return;
-
+        // Subscribe here (not OnEnable) so EventManager.Instance is guaranteed
+        // to exist — all Awake() calls complete before any Start() runs.
+        if (EventManager.Instance == null)
+        {
+            Debug.LogError("[UIManager] EventManager not found — events won't display.");
+            return;
+        }
         EventManager.Instance.OnEventLoaded  += HandleEventLoaded;
         EventManager.Instance.OnGameComplete += HandleGameComplete;
     }

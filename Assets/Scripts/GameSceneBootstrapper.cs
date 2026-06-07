@@ -4,6 +4,7 @@ using UnityEngine;
 /// Place this on a single GameObject in the Game scene.
 /// Registers all managers with GameManager, restores save data if continuing,
 /// then kicks off the event sequence at the correct position.
+/// Also handles resuming after a stealth or escape gameplay scene.
 /// </summary>
 public class GameSceneBootstrapper : MonoBehaviour
 {
@@ -19,7 +20,13 @@ public class GameSceneBootstrapper : MonoBehaviour
 
         int startIndex = 0;
 
-        if (GameManager.Instance.IsLoadingSave)
+        // Returning from a gameplay scene (stealth / escape)
+        if (EventManager.Instance.ResumeIndex > 0)
+        {
+            startIndex = EventManager.Instance.ResumeIndex;
+            EventManager.Instance.ResumeIndex = 0;
+        }
+        else if (GameManager.Instance.IsLoadingSave)
         {
             GameSaveData saveData = SaveManager.Instance?.Load();
             if (saveData != null && saveData.hasSave)
@@ -30,6 +37,14 @@ public class GameSceneBootstrapper : MonoBehaviour
             GameManager.Instance.IsLoadingSave = false;
         }
 
-        EventManager.Instance.BeginSequence(startIndex);
+        // Delay one frame so all Start() calls (including UIManager's subscription)
+        // complete before BeginSequence fires its synchronous OnEventLoaded event.
+        StartCoroutine(DelayedBegin(startIndex));
+    }
+
+    private System.Collections.IEnumerator DelayedBegin(int index)
+    {
+        yield return null;
+        EventManager.Instance.BeginSequence(index);
     }
 }

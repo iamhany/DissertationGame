@@ -56,6 +56,28 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Load the stealth scene (Garden approach). EventManager sets ResumeIndex first.
+    /// </summary>
+    public void LoadStealthScene()
+    {
+        SceneManager.LoadScene("StealthScene");
+    }
+
+    /// <summary>
+    /// Load the escape scene (flight from the city). EventManager sets ResumeIndex first.
+    /// </summary>
+    public void LoadEscapeScene()
+    {
+        SceneManager.LoadScene("EscapeScene");
+    }
+
+    /// <summary>Return to the main narrative Game scene at the stored resume index.</summary>
+    public void ResumeNarrative()
+    {
+        SceneManager.LoadScene("Game");
+    }
+
+    /// <summary>
     /// Clears the save, resets all live state, and returns to the Main Menu.
     /// Called by the exit menu's "Take me back" button.
     /// </summary>

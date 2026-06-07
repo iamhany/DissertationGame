@@ -6,6 +6,7 @@ public class StateManager : MonoBehaviour
 
     public InterpretationState Interpretation { get; private set; } = new InterpretationState();
     public CrowdState          Crowd          { get; private set; } = new CrowdState();
+    public ChoiceMemory        Memory         { get; private set; } = new ChoiceMemory();
 
     void Awake()
     {
@@ -32,5 +33,6 @@ public class StateManager : MonoBehaviour
     {
         Interpretation = new InterpretationState();
         Crowd          = new CrowdState();
+        Memory         = new ChoiceMemory();
     }
 }

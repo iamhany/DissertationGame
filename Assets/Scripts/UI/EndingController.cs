@@ -62,7 +62,8 @@ public class EndingController : MonoBehaviour
 
     private void ApplyEndingText()
     {
-        if (titleText != null) titleText.text = _ending.Title;
+        // Title intentionally not shown
+        if (titleText != null) titleText.gameObject.SetActive(false);
         if (bodyText  != null) bodyText.text  = _ending.Body;
     }
 

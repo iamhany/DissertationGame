@@ -28,6 +28,7 @@ public class MainMenuController : MonoBehaviour
 
     [Header("Settings Panel")]
     public GameObject settingsPanel;
+    public Button     settingsBackButton;
 
     void Start()
     {
@@ -43,6 +44,9 @@ public class MainMenuController : MonoBehaviour
 
         if (settingsButton != null)
             settingsButton.onClick.AddListener(ToggleSettings);
+
+        if (settingsBackButton != null)
+            settingsBackButton.onClick.AddListener(ToggleSettings);
 
         if (confirmNameButton != null)
             confirmNameButton.onClick.AddListener(OnConfirmNameClicked);
