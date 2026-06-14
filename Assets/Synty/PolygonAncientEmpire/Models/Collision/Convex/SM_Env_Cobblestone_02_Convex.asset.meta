@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 473b052095ae3b14fac6d37664d9324e
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 1523627817572722429
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 224020
+  packageName: POLYGON - Ancient Empire Pack - Art by Synty
+  packageVersion: 1.6.0
+  assetPath: Assets/Synty/PolygonAncientEmpire/Models/Collision/Convex/SM_Env_Cobblestone_02_Convex.asset
+  uploadId: 922954

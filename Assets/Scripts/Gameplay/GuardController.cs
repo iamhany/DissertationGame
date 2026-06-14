@@ -3,299 +3,216 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Full guard AI for the stealth and escape scenes.
+/// 3D guard AI for the Garden exploration scene.
 ///
-/// Vision  – forward cone only (angle + range). Range halved if player is Shifted.
-/// Hearing – radius around guard. Zero if player is Shifted.
-/// States  – Patrol → Suspicious → Alert → Searching → Patrol
-///
-/// Alert propagation: when a guard enters Alert it calls NearbyGuards() and
-/// broadcasts the player's last known position to all within alertRadius.
+/// States  : Patrol → Chase → Alerted (lost sight) → Patrol
+/// Vision  : forward cone (visionAngle, visionRange). Blocked by obstacleMask.
+/// Hearing : radius scaled by PlayerStealthController.NoiseLevel.
+/// Catch   : when within catchDistance, notifies ExplorationSceneManager.
+/// Reset   : call ResetGuard() to restart from initial state (used on retry).
 /// </summary>
-[RequireComponent(typeof(Rigidbody2D))]
+[RequireComponent(typeof(CharacterController))]
 public class GuardController : MonoBehaviour
 {
+    public enum GuardState { Patrol, Chase, Alerted }
+
     // ── Inspector ─────────────────────────────────────────────────────────────
-
-    [Header("Vision")]
-    [Tooltip("Half-angle of the forward vision cone in degrees.")]
-    public float visionAngle   = 40f;
-    [Tooltip("Maximum forward vision distance (halved when player is Shifted).")]
-    public float visionRange   = 9f;
-    [Tooltip("Layer mask for walls that block vision raycasts.")]
-    public LayerMask wallMask;
-
-    [Header("Hearing")]
-    [Tooltip("Radius in which footstep sound can be heard (0 when player is Shifted).")]
-    public float hearingRadius = 5f;
-
-    [Header("Alert")]
-    [Tooltip("Radius in which this guard broadcasts an alert to other guards.")]
-    public float alertRadius   = 14f;
-    [Tooltip("Speed multiplier when chasing player.")]
-    public float chaseSpeedMultiplier = 1.4f;
 
     [Header("Patrol")]
     public List<Transform> waypoints = new List<Transform>();
-    public float moveSpeed    = 1.6f;
-    public float waypointWaitTime = 1.2f;
+    public float moveSpeed         = 2f;
+    public float waypointTolerance = 1.2f;
+    public float waypointWaitTime  = 1.2f;
 
-    [Header("Detection meter contribution")]
-    [Tooltip("How fast detection fills per second when inside vision cone.")]
-    public float visionDetectionRate  = 45f;
-    [Tooltip("How fast detection fills per second when inside hearing radius.")]
-    public float hearingDetectionRate = 20f;
+    [Header("Chase")]
+    public float chaseSpeed    = 4.5f;
+    public float catchDistance = 1.5f;
 
-    // ── State machine ─────────────────────────────────────────────────────────
+    [Header("Vision")]
+    public float     visionRange = 12f;
+    [Tooltip("Half-angle of forward vision cone in degrees.")]
+    public float     visionAngle = 45f;
+    [Tooltip("Eye height offset above transform.position used for line-of-sight raycasts.")]
+    public float     eyeHeight   = 1.6f;
+    public LayerMask obstacleMask;
 
-    public enum GuardState { Patrol, Suspicious, Alert, Searching }
+    [Header("Hearing")]
+    [Tooltip("Base hearing radius at full noise (NoiseLevel = 1).")]
+    public float hearingRadius = 5f;
+
+    // ── State ─────────────────────────────────────────────────────────────────
+
     public GuardState State { get; private set; } = GuardState.Patrol;
 
     // ── Private ───────────────────────────────────────────────────────────────
 
-    private Rigidbody2D    _rb;
-    private Transform      _player;
+    private CharacterController     _cc;
+    private Transform               _player;
     private PlayerStealthController _playerCtrl;
-    private int            _waypointIndex;
-    private bool           _waitingAtWaypoint;
-    private Vector2        _investigateTarget;
-    private float          _searchTimer;
-    private const float    SearchDuration = 6f;
 
-    // Colour feedback (uses SpriteRenderer if present)
-    private SpriteRenderer _sprite;
-    private static readonly Color ColPatrol     = new Color(0.85f, 0.2f, 0.2f);
-    private static readonly Color ColSuspicious = new Color(1f,    0.7f, 0f);
-    private static readonly Color ColAlert      = new Color(1f,    0f,   0f);
-    private static readonly Color ColSearching  = new Color(1f,    0.4f, 0.1f);
+    private int   _waypointIndex;
+    private bool  _waiting;
+    private float _alertTimer;
+    private bool  _hasCaught;
+
+    private const float Gravity      = -12f;
+    private const float AlertSustain = 3.5f;   // seconds the guard chases after losing sight
+    private float _vertVel;
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
     void Awake()
     {
-        _rb     = GetComponent<Rigidbody2D>();
-        _sprite = GetComponent<SpriteRenderer>();
-
-        var playerGO = GameObject.FindGameObjectWithTag("Player");
-        if (playerGO != null)
+        _cc = GetComponent<CharacterController>();
+        var pg = GameObject.FindGameObjectWithTag("Player");
+        if (pg != null)
         {
-            _player     = playerGO.transform;
-            _playerCtrl = playerGO.GetComponent<PlayerStealthController>();
+            _player     = pg.transform;
+            _playerCtrl = pg.GetComponent<PlayerStealthController>();
         }
     }
 
     void Update()
     {
+        if (_hasCaught) return;
+        ApplyGravity();
+        SensePlayer();
+
         switch (State)
         {
-            case GuardState.Patrol:    UpdatePatrol();    break;
-            case GuardState.Suspicious: UpdateSuspicious(); break;
-            case GuardState.Alert:     UpdateAlert();     break;
-            case GuardState.Searching: UpdateSearching(); break;
+            case GuardState.Patrol:  UpdatePatrol();  break;
+            case GuardState.Chase:   UpdateChase();   break;
+            case GuardState.Alerted: UpdateAlerted(); break;
         }
-
-        CheckSenses();
-        UpdateColour();
     }
 
-    // ── State updates ─────────────────────────────────────────────────────────
+    // ── Gravity ───────────────────────────────────────────────────────────────
 
-    private void UpdatePatrol()
+    private void ApplyGravity()
     {
-        if (waypoints == null || waypoints.Count == 0) return;
-        if (_waitingAtWaypoint) return;
-
-        Transform target = waypoints[_waypointIndex];
-        MoveToward(target.position, moveSpeed);
-
-        if (Vector2.Distance(transform.position, target.position) < 0.2f)
-            StartCoroutine(WaypointWait());
+        if (_cc.isGrounded && _vertVel < 0f) _vertVel = -2f;
+        _vertVel += Gravity * Time.deltaTime;
     }
 
-    private void UpdateSuspicious()
-    {
-        // Move toward last heard/seen position
-        MoveToward(_investigateTarget, moveSpeed * 0.7f);
+    // ── Sensing ───────────────────────────────────────────────────────────────
 
-        if (Vector2.Distance(transform.position, _investigateTarget) < 0.5f)
-            TransitionTo(GuardState.Patrol);
-    }
-
-    private void UpdateAlert()
+    private void SensePlayer()
     {
         if (_player == null) return;
-        MoveToward(_player.position, moveSpeed * chaseSpeedMultiplier);
+        if (CanSeePlayer() || CanHearPlayer())
+            EnterChase();
     }
 
-    private void UpdateSearching()
-    {
-        // Wander around last known position
-        MoveToward(_investigateTarget, moveSpeed * 0.8f);
-        _searchTimer -= Time.deltaTime;
-
-        if (_searchTimer <= 0f || Vector2.Distance(transform.position, _investigateTarget) < 0.4f)
-            TransitionTo(GuardState.Patrol);
-    }
-
-    // ── Sense checking ────────────────────────────────────────────────────────
-
-    private void CheckSenses()
-    {
-        if (_player == null) return;
-
-        bool isShifted = _playerCtrl != null && _playerCtrl.IsShifted;
-
-        if (CanSeePlayer(isShifted))
-        {
-            float rate = visionDetectionRate;
-            StealthSceneManager.Instance?.AddDetection(rate * Time.deltaTime, transform.position);
-
-            if (State != GuardState.Alert)
-                BecomeAlert(_player.position);
-            return;
-        }
-
-        if (!isShifted && CanHearPlayer())
-        {
-            float rate = hearingDetectionRate;
-            StealthSceneManager.Instance?.AddDetection(rate * Time.deltaTime, transform.position);
-
-            if (State == GuardState.Patrol)
-                BecomeSuspicious(_player.position);
-        }
-    }
-
-    private bool CanSeePlayer(bool playerShifted)
+    private bool CanSeePlayer()
     {
         if (_player == null) return false;
-
-        float effectiveRange = playerShifted ? visionRange * 0.35f : visionRange;
-        Vector2 toPlayer = (Vector2)_player.position - (Vector2)transform.position;
-
-        if (toPlayer.magnitude > effectiveRange) return false;
-
-        // Must be within forward cone
-        float angle = Vector2.Angle((Vector2)transform.up, toPlayer);
-        if (angle > visionAngle) return false;
-
-        // Line-of-sight raycast
-        RaycastHit2D hit = Physics2D.Raycast(
-            transform.position, toPlayer.normalized, toPlayer.magnitude, wallMask);
-        return hit.collider == null;
+        Vector3 eye      = transform.position + Vector3.up * eyeHeight;
+        Vector3 toPlayer = (_player.position + Vector3.up * 0.9f) - eye;
+        float   dist     = toPlayer.magnitude;
+        if (dist > visionRange) return false;
+        if (Vector3.Angle(transform.forward, toPlayer) > visionAngle) return false;
+        return !Physics.Raycast(eye, toPlayer.normalized, dist, obstacleMask);
     }
 
     private bool CanHearPlayer()
     {
         if (_player == null) return false;
-        float dist = Vector2.Distance(transform.position, _player.position);
-        float noise = _playerCtrl != null ? _playerCtrl.NoiseLevel : 1f;
-        return dist < hearingRadius * noise;
+        float noise  = _playerCtrl != null ? _playerCtrl.NoiseLevel : 1f;
+        float radius = hearingRadius * noise;
+        return radius > 0.05f &&
+               Vector3.Distance(transform.position, _player.position) <= radius;
     }
 
-    // ── Transitions ───────────────────────────────────────────────────────────
+    // ── Patrol ────────────────────────────────────────────────────────────────
 
-    private void TransitionTo(GuardState next)
+    private void UpdatePatrol()
     {
-        State = next;
-        if (next == GuardState.Searching)
-            _searchTimer = SearchDuration;
-    }
+        if (waypoints.Count == 0 || _waiting) return;
+        var target = waypoints[_waypointIndex].position;
+        MoveToward(target, moveSpeed);
 
-    private void BecomeAlert(Vector2 playerPos)
-    {
-        _investigateTarget = playerPos;
-        TransitionTo(GuardState.Alert);
-
-        // Broadcast alert to nearby guards
-        Collider2D[] nearby = Physics2D.OverlapCircleAll(transform.position, alertRadius);
-        foreach (var col in nearby)
-        {
-            var other = col.GetComponent<GuardController>();
-            if (other != null && other != this)
-                other.ReceiveAlert(playerPos);
-        }
-    }
-
-    private void BecomeSuspicious(Vector2 soundPos)
-    {
-        _investigateTarget = soundPos;
-        TransitionTo(GuardState.Suspicious);
-    }
-
-    /// <summary>Called by a nearby guard that has spotted the player.</summary>
-    public void ReceiveAlert(Vector2 playerPos)
-    {
-        if (State != GuardState.Alert)
-            BecomeAlert(playerPos);
-    }
-
-    /// <summary>Call when this guard loses visual contact with the player.</summary>
-    public void LosePlayer()
-    {
-        if (State == GuardState.Alert)
-        {
-            _investigateTarget = _player != null ? (Vector2)_player.position : (Vector2)transform.position;
-            TransitionTo(GuardState.Searching);
-        }
-    }
-
-    // ── Movement ──────────────────────────────────────────────────────────────
-
-    private void MoveToward(Vector2 target, float speed)
-    {
-        Vector2 dir = (target - (Vector2)transform.position).normalized;
-        _rb.linearVelocity = dir * speed;
-
-        // Rotate to face movement direction (2D: z-axis)
-        if (dir.sqrMagnitude > 0.01f)
-        {
-            float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f;
-            transform.rotation = Quaternion.Euler(0f, 0f, angle);
-        }
+        float flat = Vector2.Distance(
+            new Vector2(transform.position.x, transform.position.z),
+            new Vector2(target.x, target.z));
+        if (flat < waypointTolerance)
+            StartCoroutine(WaypointWait());
     }
 
     private IEnumerator WaypointWait()
     {
-        _waitingAtWaypoint = true;
-        _rb.linearVelocity = Vector2.zero;
+        _waiting = true;
         yield return new WaitForSeconds(waypointWaitTime);
-        _waypointIndex = (_waypointIndex + 1) % waypoints.Count;
-        _waitingAtWaypoint = false;
+        _waypointIndex = (_waypointIndex + 1) % Mathf.Max(1, waypoints.Count);
+        _waiting = false;
     }
 
-    // ── Visual feedback ───────────────────────────────────────────────────────
+    // ── Chase ─────────────────────────────────────────────────────────────────
 
-    private void UpdateColour()
+    private void EnterChase()
     {
-        if (_sprite == null) return;
-        _sprite.color = State switch
+        State = GuardState.Chase;
+        _alertTimer = AlertSustain;
+    }
+
+    private void UpdateChase()
+    {
+        if (_player == null) return;
+        MoveToward(_player.position, chaseSpeed);
+
+        if (Vector3.Distance(transform.position, _player.position) <= catchDistance)
         {
-            GuardState.Suspicious => ColSuspicious,
-            GuardState.Alert      => ColAlert,
-            GuardState.Searching  => ColSearching,
-            _                     => ColPatrol,
-        };
+            _hasCaught = true;
+            ExplorationSceneManager.Instance?.OnPlayerCaught();
+            return;
+        }
+
+        if (!CanSeePlayer() && !CanHearPlayer())
+        {
+            _alertTimer -= Time.deltaTime;
+            if (_alertTimer <= 0f)
+                State = GuardState.Alerted;
+        }
+        else
+        {
+            _alertTimer = AlertSustain;
+        }
     }
 
-    // ── Gizmos ────────────────────────────────────────────────────────────────
+    // ── Alerted (heading to last known pos before giving up) ──────────────────
 
-    void OnDrawGizmosSelected()
+    private void UpdateAlerted()
     {
-        // Vision cone
-        Gizmos.color = Color.yellow;
-        Vector3 forward = transform.up;
-        Vector3 left    = Quaternion.Euler(0f, 0f,  visionAngle) * forward;
-        Vector3 right   = Quaternion.Euler(0f, 0f, -visionAngle) * forward;
-        Gizmos.DrawLine(transform.position, transform.position + left  * visionRange);
-        Gizmos.DrawLine(transform.position, transform.position + right * visionRange);
-        Gizmos.DrawLine(transform.position, transform.position + forward * visionRange);
+        if (_player == null) { State = GuardState.Patrol; return; }
+        MoveToward(_player.position, moveSpeed * 1.2f);
+        _alertTimer -= Time.deltaTime;
+        if (_alertTimer <= 0f)
+            State = GuardState.Patrol;
+    }
 
-        // Hearing radius
-        Gizmos.color = new Color(0f, 0.8f, 1f, 0.3f);
-        Gizmos.DrawWireSphere(transform.position, hearingRadius);
+    // ── Movement helper ───────────────────────────────────────────────────────
 
-        // Alert radius
-        Gizmos.color = new Color(1f, 0f, 0f, 0.2f);
-        Gizmos.DrawWireSphere(transform.position, alertRadius);
+    private void MoveToward(Vector3 target, float speed)
+    {
+        Vector3 dir = target - transform.position;
+        dir.y = 0f;
+        if (dir.magnitude > 0.05f)
+        {
+            dir.Normalize();
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation, Quaternion.LookRotation(dir), 8f * Time.deltaTime);
+        }
+        _cc.Move((dir * speed + Vector3.up * _vertVel) * Time.deltaTime);
+    }
+
+    // ── Reset (called by ExplorationSceneManager on retry) ───────────────────
+
+    public void ResetGuard()
+    {
+        _hasCaught     = false;
+        _waiting       = false;
+        _alertTimer    = 0f;
+        _waypointIndex = 0;
+        State          = GuardState.Patrol;
+        StopAllCoroutines();
     }
 }

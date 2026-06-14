@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 75af3ab3112733242b62e4b581a7b3b7
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 3119837717141740252
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 224020
+  packageName: POLYGON - Ancient Empire Pack - Art by Synty
+  packageVersion: 1.6.0
+  assetPath: Assets/Synty/PolygonAncientEmpire/Models/Collision/Convex/SM_Prop_Statue_01_Convex.asset
+  uploadId: 922954

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 66c118772e4834542b9b78d351966d0e
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: -866077406361289821
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 224020
+  packageName: POLYGON - Ancient Empire Pack - Art by Synty
+  packageVersion: 1.6.0
+  assetPath: Assets/Synty/PolygonAncientEmpire/Models/Collision/Convex/SM_Wep_Shield_03_Convex.asset
+  uploadId: 922954

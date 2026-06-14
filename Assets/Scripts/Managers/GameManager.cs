@@ -56,19 +56,11 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Load the stealth scene (Garden approach). EventManager sets ResumeIndex first.
+    /// Load the first-person exploration scene (Garden approach). EventManager sets ResumeIndex first.
     /// </summary>
-    public void LoadStealthScene()
+    public void LoadExplorationScene()
     {
-        SceneManager.LoadScene("StealthScene");
-    }
-
-    /// <summary>
-    /// Load the escape scene (flight from the city). EventManager sets ResumeIndex first.
-    /// </summary>
-    public void LoadEscapeScene()
-    {
-        SceneManager.LoadScene("EscapeScene");
+        SceneManager.LoadScene("ExplorationScene");
     }
 
     /// <summary>Return to the main narrative Game scene at the stored resume index.</summary>

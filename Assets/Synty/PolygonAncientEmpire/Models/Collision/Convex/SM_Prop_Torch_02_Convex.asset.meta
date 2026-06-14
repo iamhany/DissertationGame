@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 31b800f8fcf45944b83c619e0acfc398
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 6030602918120505747
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 224020
+  packageName: POLYGON - Ancient Empire Pack - Art by Synty
+  packageVersion: 1.6.0
+  assetPath: Assets/Synty/PolygonAncientEmpire/Models/Collision/Convex/SM_Prop_Torch_02_Convex.asset
+  uploadId: 922954

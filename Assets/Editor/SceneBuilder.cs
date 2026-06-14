@@ -21,8 +21,8 @@ public static class SceneBuilder
     private const string MainMenuPath = "Assets/Scenes/MainMenu.unity";
     private const string GamePath     = "Assets/Scenes/Game.unity";
     private const string EndingPath   = "Assets/Scenes/Ending.unity";
-    private const string StealthPath  = "Assets/Scenes/StealthScene.unity";
-    private const string EscapePath   = "Assets/Scenes/EscapeScene.unity";
+    private const string ExplorationScenePath = "Assets/Scenes/ExplorationScene.unity";
+    private const string SyntyDemoPath        = "Assets/Synty/PolygonAncientEmpire/Scenes/Demo.unity";
 
     [MenuItem("DissertationGame/Build All Scenes")]
     public static void BuildAllScenes()
@@ -41,8 +41,7 @@ public static class SceneBuilder
         BuildMainMenuScene();
         BuildGameScene(prefab);
         BuildEndingScene();
-        BuildStealthScene();
-        BuildEscapeScene();
+        BuildExplorationScene();
         UpdateBuildSettings();
 
         AssetDatabase.SaveAssets();
@@ -97,7 +96,6 @@ public static class SceneBuilder
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
         CreateCamera();
-        CreateEventSystem();
 
         // ── DontDestroyOnLoad singletons ──────────────────────────────────────
         new GameObject("GameManager").AddComponent<GameManager>();
@@ -389,365 +387,102 @@ public static class SceneBuilder
         Debug.Log($"[SceneBuilder] Ending → {EndingPath}");
     }
 
-    // ─── Stealth Scene ───────────────────────────────────────────────────
+    // ─── Exploration Scene ────────────────────────────────────────────────────
 
-    private static void BuildStealthScene()
+    private static void BuildExplorationScene()
     {
-        BuildGameplayScene(
-            StealthPath,
-            "Stealth",
-            typeof(StealthSceneManager),
-            isEscape: false);
-        Debug.Log($"[SceneBuilder] StealthScene \u2192 {StealthPath}");
-    }
-
-    // ─── Escape Scene ───────────────────────────────────────────────────
-
-    private static void BuildEscapeScene()
-    {
-        BuildGameplayScene(
-            EscapePath,
-            "Escape",
-            typeof(EscapeSceneManager),
-            isEscape: true);
-        Debug.Log($"[SceneBuilder] EscapeScene \u2192 {EscapePath}");
-    }
-
-    /// <summary>
-    /// Shared builder for the two top-down 2D gameplay scenes.
-    /// Creates a top-down camera, a tiled garden/city floor, hedge/wall obstacles,
-    /// guard patrol routes, a player start, and an exit trigger.
-    /// The SceneManager component type differs between stealth and escape.
-    /// </summary>
-    private static void BuildGameplayScene(string scenePath, string sceneLabel,
-                                           System.Type managerType, bool isEscape)
-    {
-        // Ensure the custom tags exist before any GameObject.tag assignment
-        EnsureTag("Exit");
-        EnsureTag("EscapeExit");
-        EnsureTag("Player");
-
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         CreateEventSystem();
 
-        // ── Top-down camera ───────────────────────────────────────────────────
-        var camGO = new GameObject("Main Camera");
+        // ── Directional light (placeholder — Demo scene will provide its own) ──
+        var lightGO = new GameObject("Directional Light");
+        var light   = lightGO.AddComponent<Light>();
+        light.type      = LightType.Directional;
+        light.intensity = 1f;
+        lightGO.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
+
+        // ── Player capsule ────────────────────────────────────────────────────
+        var playerGO = new GameObject("Player");
+        playerGO.tag  = "Player";
+        playerGO.transform.position = new Vector3(0f, 1f, 0f);
+        var cc = playerGO.AddComponent<CharacterController>();
+        cc.height = 1.8f;
+        cc.radius = 0.35f;
+        cc.center = new Vector3(0f, 0.9f, 0f);
+        var fpc = playerGO.AddComponent<FirstPersonController>();
+
+        // ── First-person camera (child of player) ─────────────────────────────
+        var camGO = new GameObject("First Person Camera");
         camGO.tag = "MainCamera";
+        camGO.transform.SetParent(playerGO.transform, false);
+        camGO.transform.localPosition = new Vector3(0f, 1.65f, 0f);
         var cam = camGO.AddComponent<Camera>();
-        cam.clearFlags      = CameraClearFlags.SolidColor;
-        cam.backgroundColor = new Color(0.04f, 0.08f, 0.03f);
-        cam.orthographic    = true;
-        cam.orthographicSize = 9f;   // tighter view — player always visible
+        cam.clearFlags    = CameraClearFlags.Skybox;
+        cam.fieldOfView   = 75f;
+        cam.nearClipPlane = 0.1f;
+        cam.farClipPlane  = 500f;
         camGO.AddComponent<AudioListener>();
-        camGO.transform.position = new Vector3(0f, 0f, -10f);
-        // CameraFollow is wired to the Player after the player GO is created
+        fpc.cameraTransform = camGO.transform;
 
         // ── Scene manager ─────────────────────────────────────────────────────
-        var smGO = new GameObject(sceneLabel + "SceneManager");
-        var sm   = smGO.AddComponent(managerType);
-
-        // ── Ground plane ──────────────────────────────────────────────────────
-        var ground = new GameObject("Ground");
-        var groundSR = ground.AddComponent<SpriteRenderer>();
-        groundSR.sprite = GetDefaultSprite();
-        groundSR.color  = new Color(0.06f, 0.12f, 0.04f);
-        ground.transform.localScale = new Vector3(36f, 36f, 1f);
-
-        // ── Boundary walls ────────────────────────────────────────────────────
-        CreateWall("Wall_Top",    new Vector2( 0f,  17f), new Vector2(38f, 2f));
-        CreateWall("Wall_Bottom", new Vector2( 0f, -17f), new Vector2(38f, 2f));
-        CreateWall("Wall_Left",   new Vector2(-19f,  0f), new Vector2(2f, 38f));
-        CreateWall("Wall_Right",  new Vector2( 19f,  0f), new Vector2(2f, 38f));
-
-        // ── Interior obstacles (hedges / market stalls) ───────────────────────
-        if (!isEscape)
-        {
-            // Garden layout: olive tree clusters and hedge rows
-            CreateWall("Hedge_1", new Vector2(-8f,  5f), new Vector2(10f, 1.5f));
-            CreateWall("Hedge_2", new Vector2( 5f,  2f), new Vector2(1.5f, 8f));
-            CreateWall("Hedge_3", new Vector2(-5f, -4f), new Vector2(6f,  1.5f));
-            CreateWall("Hedge_4", new Vector2( 8f, -6f), new Vector2(1.5f, 6f));
-            CreateWall("Hedge_5", new Vector2( 0f,  9f), new Vector2(8f,  1.5f));
-        }
-        else
-        {
-            // City street layout: buildings and alleys
-            CreateWall("Block_1", new Vector2(-10f,  7f), new Vector2(7f, 5f));
-            CreateWall("Block_2", new Vector2(  5f,  7f), new Vector2(7f, 5f));
-            CreateWall("Block_3", new Vector2(-10f, -5f), new Vector2(7f, 5f));
-            CreateWall("Block_4", new Vector2(  5f, -5f), new Vector2(7f, 5f));
-            CreateWall("Block_5", new Vector2( -2f,  1f), new Vector2(5f, 3f));
-        }
-
-        // ── Player ────────────────────────────────────────────────────────────
-        var playerGO  = new GameObject("Player");
-        playerGO.tag  = "Player";
-        playerGO.transform.position = new Vector3(-14f, -12f, 0f);
-        var playerCol             = playerGO.AddComponent<CircleCollider2D>();
-        playerCol.radius          = 0.4f;
-        var playerRB              = playerGO.AddComponent<Rigidbody2D>();
-        playerRB.gravityScale     = 0f;
-        playerRB.freezeRotation   = true;
-        playerGO.AddComponent<PlayerStealthController>();
-        var playerSR  = playerGO.AddComponent<SpriteRenderer>();
-        playerSR.sprite = GetDefaultSprite();
-        playerSR.color  = new Color(0.25f, 0.55f, 1f);
-        playerGO.transform.localScale = new Vector3(0.8f, 0.8f, 1f);
-
-        // Wire camera follow now that the player GO exists
-        var camFollow = camGO.AddComponent<CameraFollow>();
-        camFollow.target = playerGO.transform;
-        camFollow.boundsHalfExtent = new Vector2(16f, 16f);
-
-        // ── Guards ────────────────────────────────────────────────────────────
-        int guardCount = isEscape ? 5 : 3;
-        CreateGuardPatrols(guardCount, isEscape);
-
-        // ── Exit trigger ──────────────────────────────────────────────────────
-        string exitTag = isEscape ? "EscapeExit" : "Exit";
-        var exitGO = new GameObject("Exit");
-        exitGO.tag = exitTag;
-        exitGO.transform.position = new Vector3(14f, 12f, 0f);
-        var exitCol         = exitGO.AddComponent<BoxCollider2D>();
-        exitCol.isTrigger   = true;
-        exitCol.size        = new Vector2(3f, 3f);
-        var exitSR          = exitGO.AddComponent<SpriteRenderer>();
-        exitSR.sprite       = GetDefaultSprite();
-        exitSR.color        = new Color(1f, 0.9f, 0.1f, 0.75f);
-        exitGO.transform.localScale = new Vector3(3f, 3f, 1f);
-
-        // Arrow pointing down toward exit centre
-        var arrowGO   = new GameObject("ExitArrow");
-        arrowGO.transform.position = new Vector3(14f, 14.6f, 0f);
-        var arrowSR   = arrowGO.AddComponent<SpriteRenderer>();
-        arrowSR.sprite = GetDefaultSprite();
-        arrowSR.color  = new Color(1f, 0.9f, 0.1f, 1f);
-        arrowGO.transform.localScale = new Vector3(0.5f, 1.6f, 1f);
-        arrowGO.AddComponent<ExitPulse>();  // added below
-
-        // World-space label above the exit
-        var exitCanvas = new GameObject("ExitCanvas");
-        exitCanvas.transform.position = new Vector3(14f, 15.8f, 0f);
-        var ec = exitCanvas.AddComponent<Canvas>();
-        ec.renderMode = RenderMode.WorldSpace;
-        ec.sortingOrder = 5;
-        exitCanvas.GetComponent<RectTransform>().sizeDelta = new Vector2(6f, 1.4f);
-        var exitLabelGO = CreateTMP("ExitLabel", exitCanvas.transform,
-            isEscape ? "CITY GATE\n\u25BC ESCAPE HERE \u25BC" : "EXIT\n\u25BC REACH HERE \u25BC",
-            0.55f, TextAlignmentOptions.Center, new Color(1f, 0.95f, 0.2f));
-        FillRect(exitLabelGO);
+        var smGO = new GameObject("ExplorationSceneManager");
+        var esm  = smGO.AddComponent<ExplorationSceneManager>();
 
         // ── HUD Canvas ────────────────────────────────────────────────────────
         var hudCanvas = CreateCanvas("HUD");
-        var hud = BuildGameplayHUD(hudCanvas, sm, managerType, isEscape);
+        var hudT      = hudCanvas.transform;
 
-        EditorSceneManager.SaveScene(scene, scenePath);
-    }
-
-    private static void CreateGuardPatrols(int count, bool isEscape)
-    {
-        // Predefined patrol paths that match the obstacle layout
-        Vector2[][] patrolSets = isEscape
-            ? new[]
-            {
-                new[]{ new Vector2(-12f,10f), new Vector2(-12f,0f), new Vector2(-4f,0f), new Vector2(-4f,10f) },
-                new[]{ new Vector2(  8f,10f), new Vector2( 14f,10f), new Vector2(14f,2f), new Vector2(8f,2f)  },
-                new[]{ new Vector2( -4f,-8f), new Vector2( 4f,-8f), new Vector2(4f,-2f), new Vector2(-4f,-2f) },
-                new[]{ new Vector2( 12f,-8f), new Vector2(16f,-8f), new Vector2(16f,-2f)                      },
-                new[]{ new Vector2( -8f, 4f), new Vector2(-8f,-2f)                                            },
-            }
-            : new[]
-            {
-                new[]{ new Vector2(-14f,  8f), new Vector2(-4f,  8f), new Vector2(-4f, 0f), new Vector2(-14f, 0f) },
-                new[]{ new Vector2(  2f,  6f), new Vector2( 8f,  6f), new Vector2( 8f,-4f), new Vector2(  2f,-4f) },
-                new[]{ new Vector2(-10f, -7f), new Vector2( 0f, -7f), new Vector2( 0f,-12f),new Vector2(-10f,-12f) },
-            };
-
-        for (int i = 0; i < Mathf.Min(count, patrolSets.Length); i++)
-        {
-            var guardGO  = new GameObject($"Guard_{i + 1}");
-            guardGO.transform.position = new Vector3(patrolSets[i][0].x, patrolSets[i][0].y, 0f);
-            var guardCol              = guardGO.AddComponent<CapsuleCollider2D>();
-            guardCol.size             = new Vector2(0.7f, 0.9f);
-            var guardRB               = guardGO.AddComponent<Rigidbody2D>();
-            guardRB.gravityScale      = 0f;
-            guardRB.freezeRotation    = true;
-            var guardSR               = guardGO.AddComponent<SpriteRenderer>();
-            guardSR.sprite            = GetDefaultSprite();
-            guardSR.color             = new Color(0.85f, 0.2f, 0.2f);
-            guardGO.transform.localScale = new Vector3(0.8f, 0.8f, 1f);
-            var guardCtrl             = guardGO.AddComponent<GuardController>();
-            if (isEscape) guardCtrl.moveSpeed = 2.0f;  // faster in escape scene
-
-            // Create waypoint GameObjects
-            var waypointParent = new GameObject($"Guard_{i+1}_Waypoints");
-            foreach (var wp in patrolSets[i])
-            {
-                var wpGO = new GameObject("Waypoint");
-                wpGO.transform.SetParent(waypointParent.transform);
-                wpGO.transform.position = new Vector3(wp.x, wp.y, 0f);
-                guardCtrl.waypoints.Add(wpGO.transform);
-            }
-        }
-    }
-
-    private static GameObject CreateWall(string name, Vector2 pos, Vector2 size)
-    {
-        var go = new GameObject(name);
-        go.transform.position   = new Vector3(pos.x, pos.y, 0f);
-        go.transform.localScale = new Vector3(size.x, size.y, 1f);
-        go.layer                = LayerMask.NameToLayer("Default");
-        var sr   = go.AddComponent<SpriteRenderer>();
-        sr.sprite = GetDefaultSprite();
-        sr.color  = new Color(0.15f, 0.28f, 0.12f);
-        var col  = go.AddComponent<BoxCollider2D>();
-        return go;
-    }
-
-    private static UnityEngine.Sprite GetDefaultSprite()
-    {
-        // Unity's built-in white square sprite
-        return UnityEditor.AssetDatabase.GetBuiltinExtraResource<UnityEngine.Sprite>("UI/Skin/UISprite.psd");
-    }
-
-    private static Component BuildGameplayHUD(Canvas hudCanvas, Component sceneManager,
-                                               System.Type managerType, bool isEscape)
-    {
-        var hudT = hudCanvas.transform;
-
-        // Detection bar
-        var detLabel = CreateTMP("DetectionLabel", hudT, "Detection", 16,
-            TextAlignmentOptions.Left, Color.white);
-        SetAnchors(detLabel.GetComponent<RectTransform>(),
-            new Vector2(0.02f, 0.93f), new Vector2(0.18f, 0.99f));
-
-        var detSliderGO   = new GameObject("DetectionSlider", typeof(RectTransform));
-        detSliderGO.transform.SetParent(hudT, false);
-        SetAnchors(detSliderGO.GetComponent<RectTransform>(),
-            new Vector2(0.02f, 0.88f), new Vector2(0.35f, 0.93f));
-        var detSlider     = detSliderGO.AddComponent<Slider>();
-        detSlider.minValue = 0f; detSlider.maxValue = 100f;
-        var detBG = CreatePanel("Background", detSliderGO.transform, new Color(0.2f,0.2f,0.2f));
-        SetFill(detBG);
-        var detFillArea = new GameObject("Fill Area", typeof(RectTransform));
-        detFillArea.transform.SetParent(detSliderGO.transform, false); SetFill(detFillArea);
-        var detFillGO   = new GameObject("Fill",      typeof(RectTransform));
-        detFillGO.transform.SetParent(detFillArea.transform, false);  SetFill(detFillGO);
-        var detFillImg  = detFillGO.AddComponent<Image>();
-        detFillImg.color = new Color(0.2f, 0.8f, 0.3f);
-        detSlider.fillRect = detFillGO.GetComponent<RectTransform>();
-        var detHandleArea = new GameObject("Handle Slide Area", typeof(RectTransform));
-        detHandleArea.transform.SetParent(detSliderGO.transform, false); SetFill(detHandleArea);
-        var detHandle = new GameObject("Handle", typeof(RectTransform));
-        detHandle.transform.SetParent(detHandleArea.transform, false);
-        detHandle.GetComponent<RectTransform>().sizeDelta = Vector2.zero;
-        var detHandleImg = detHandle.AddComponent<Image>();
-        detHandleImg.color = new Color(0, 0, 0, 0);  // invisible handle
-        detSlider.handleRect = detHandle.GetComponent<RectTransform>();
-        detSlider.targetGraphic = detHandleImg;
-
-        // Shift bar
-        var shiftLabel = CreateTMP("ShiftLabel", hudT, "Shift", 16,
-            TextAlignmentOptions.Left, new Color(0.6f, 0.9f, 1f));
-        SetAnchors(shiftLabel.GetComponent<RectTransform>(),
-            new Vector2(0.02f, 0.82f), new Vector2(0.18f, 0.88f));
-
-        var shiftSliderGO = new GameObject("ShiftSlider", typeof(RectTransform));
-        shiftSliderGO.transform.SetParent(hudT, false);
-        SetAnchors(shiftSliderGO.GetComponent<RectTransform>(),
-            new Vector2(0.02f, 0.77f), new Vector2(0.35f, 0.82f));
-        var shiftSlider     = shiftSliderGO.AddComponent<Slider>();
-        shiftSlider.minValue = 0f; shiftSlider.maxValue = 1f; shiftSlider.value = 1f;
-        var shiftBG = CreatePanel("Background", shiftSliderGO.transform, new Color(0.2f,0.2f,0.2f));
-        SetFill(shiftBG);
-        var shiftFillArea = new GameObject("Fill Area", typeof(RectTransform));
-        shiftFillArea.transform.SetParent(shiftSliderGO.transform, false); SetFill(shiftFillArea);
-        var shiftFillGO   = new GameObject("Fill",      typeof(RectTransform));
-        shiftFillGO.transform.SetParent(shiftFillArea.transform, false);  SetFill(shiftFillGO);
-        var shiftFillImg  = shiftFillGO.AddComponent<Image>();
-        shiftFillImg.color = new Color(0.6f, 0.9f, 1f);
-        shiftSlider.fillRect = shiftFillGO.GetComponent<RectTransform>();
-        var shiftHandleArea = new GameObject("Handle Slide Area", typeof(RectTransform));
-        shiftHandleArea.transform.SetParent(shiftSliderGO.transform, false); SetFill(shiftHandleArea);
-        var shiftHandle = new GameObject("Handle", typeof(RectTransform));
-        shiftHandle.transform.SetParent(shiftHandleArea.transform, false);
-        shiftHandle.GetComponent<RectTransform>().sizeDelta = Vector2.zero;
-        var shiftHandleImg = shiftHandle.AddComponent<Image>();
-        shiftHandleImg.color = new Color(0,0,0,0);
-        shiftSlider.handleRect = shiftHandle.GetComponent<RectTransform>();
-        shiftSlider.targetGraphic = shiftHandleImg;
-
-        // Instruction text
         var instrGO = CreateTMP("InstructionText", hudT,
-            "", 15, TextAlignmentOptions.BottomLeft, new Color(0.85f,0.85f,0.85f));
+            "Explore the Garden of Gethsemane\nWASD \u00b7 Mouse to look \u00b7 [E] to finish",
+            16, TextAlignmentOptions.TopLeft, new Color(0.9f, 0.9f, 0.9f));
         SetAnchors(instrGO.GetComponent<RectTransform>(),
-            new Vector2(0.01f, 0.0f), new Vector2(0.65f, 0.12f));
+            new Vector2(0.01f, 0.88f), new Vector2(0.55f, 0.99f));
 
-        // Timer (escape scene only)
-        GameObject timerGO = null;
-        if (isEscape)
-        {
-            timerGO = CreateTMP("TimerText", hudT,
-                "01:30", 28, TextAlignmentOptions.Right, Color.white);
-            SetAnchors(timerGO.GetComponent<RectTransform>(),
-                new Vector2(0.8f, 0.92f), new Vector2(0.98f, 0.99f));
-        }
+        var progressGO = CreateTMP("ProgressText", hudT, "", 15,
+            TextAlignmentOptions.TopLeft, new Color(0.9f, 0.85f, 0.5f));
+        SetAnchors(progressGO.GetComponent<RectTransform>(),
+            new Vector2(0.01f, 0.82f), new Vector2(0.55f, 0.88f));
 
-        // Outcome panel (hidden)
-        var outcomePanelGO = CreatePanel("OutcomePanel", hudT, new Color(0,0,0,0.85f));
-        SetAnchors(outcomePanelGO.GetComponent<RectTransform>(),
-            new Vector2(0.1f, 0.2f), new Vector2(0.9f, 0.8f));
-        outcomePanelGO.SetActive(false);
-        var outcomeTextGO = CreateTMP("OutcomeText", outcomePanelGO.transform,
-            "", 20, TextAlignmentOptions.Center, Color.white);
-        SetAnchors(outcomeTextGO.GetComponent<RectTransform>(),
-            new Vector2(0.04f, 0.28f), new Vector2(0.96f, 0.96f));
+        // ── Continue panel (success) ──────────────────────────────────────────
+        var panelGO = CreatePanel("ContinuePanel", hudT, new Color(0f, 0f, 0f, 0.82f));
+        SetAnchors(panelGO.GetComponent<RectTransform>(),
+            new Vector2(0.25f, 0.3f), new Vector2(0.75f, 0.7f));
+        panelGO.SetActive(false);
 
-        // Retry button (escape scene only, hidden until failure)
-        Button retryBtn = null;
-        if (isEscape)
-        {
-            var (rb, _) = CreateAnchoredButton("RetryButton", outcomePanelGO.transform,
-                "Try Again", new Vector2(0.05f, 0.04f), new Vector2(0.45f, 0.22f));
-            retryBtn = rb;
-            rb.gameObject.SetActive(false);
-        }
+        var promptGO = CreateTMP("PromptText", panelGO.transform,
+            "You have witnessed enough.\nReturn to the story?",
+            20, TextAlignmentOptions.Center, Color.white);
+        SetAnchors(promptGO.GetComponent<RectTransform>(),
+            new Vector2(0.05f, 0.45f), new Vector2(0.95f, 0.92f));
 
-        // Continue button (shown after outcome is read)
-        var (contBtn, _) = CreateAnchoredButton("ContinueButton", outcomePanelGO.transform,
-            "Continue", new Vector2(isEscape ? 0.55f : 0.25f, 0.04f),
-            new Vector2(isEscape ? 0.95f : 0.75f, 0.22f));
-        contBtn.gameObject.SetActive(false);
+        var (contBtn, _) = CreateAnchoredButton("ContinueButton", panelGO.transform,
+            "Continue Story", new Vector2(0.2f, 0.08f), new Vector2(0.8f, 0.38f));
 
-        // Wire scene manager
-        if (!isEscape && sceneManager is StealthSceneManager ssm)
-        {
-            ssm.detectionSlider = detSlider;
-            ssm.detectionFill   = detFillImg;
-            ssm.shiftSlider     = shiftSlider;
-            ssm.shiftFill       = shiftFillImg;
-            ssm.shiftLabel      = shiftLabel.GetComponent<TextMeshProUGUI>();
-            ssm.instructionText = instrGO.GetComponent<TextMeshProUGUI>();
-            ssm.outcomeText     = outcomeTextGO.GetComponent<TextMeshProUGUI>();
-            ssm.outcomePanel    = outcomePanelGO;
-            ssm.continueButton  = contBtn;
-        }
-        else if (isEscape && sceneManager is EscapeSceneManager esm)
-        {
-            esm.detectionSlider = detSlider;
-            esm.detectionFill   = detFillImg;
-            esm.shiftSlider     = shiftSlider;
-            esm.shiftFill       = shiftFillImg;
-            esm.instructionText = instrGO.GetComponent<TextMeshProUGUI>();
-            esm.outcomeText     = outcomeTextGO.GetComponent<TextMeshProUGUI>();
-            esm.outcomePanel    = outcomePanelGO;
-            esm.retryButton     = retryBtn;
-            esm.continueButton  = contBtn;
-            if (timerGO != null)
-                esm.timerText = timerGO.GetComponent<TextMeshProUGUI>();
-        }
+        // ── Retry panel (caught by guard) ─────────────────────────────────────
+        var retryPanelGO = CreatePanel("RetryPanel", hudT, new Color(0f, 0f, 0f, 0.82f));
+        SetAnchors(retryPanelGO.GetComponent<RectTransform>(),
+            new Vector2(0.25f, 0.3f), new Vector2(0.75f, 0.7f));
+        retryPanelGO.SetActive(false);
 
-        return sceneManager;
+        var retryMsgGO = CreateTMP("RetryMessage", retryPanelGO.transform,
+            "You were caught!\nTry to escape again?",
+            20, TextAlignmentOptions.Center, Color.white);
+        SetAnchors(retryMsgGO.GetComponent<RectTransform>(),
+            new Vector2(0.05f, 0.45f), new Vector2(0.95f, 0.92f));
+
+        var (retryBtn, _) = CreateAnchoredButton("RetryButton", retryPanelGO.transform,
+            "Try Again", new Vector2(0.2f, 0.08f), new Vector2(0.8f, 0.38f));
+
+        esm.instructionText      = instrGO.GetComponent<TextMeshProUGUI>();
+        esm.progressText         = progressGO.GetComponent<TextMeshProUGUI>();
+        esm.continuePanel        = panelGO;
+        esm.continuePanelMessage = promptGO.GetComponent<TextMeshProUGUI>();
+        esm.continueButton       = contBtn;
+        esm.retryPanel           = retryPanelGO;
+        esm.retryButton          = retryBtn;
+
+        EditorSceneManager.SaveScene(scene, ExplorationScenePath);
+        Debug.Log($"[SceneBuilder] ExplorationScene \u2192 {ExplorationScenePath}");
     }
 
     // ─── Build Settings ───────────────────────────────────────────────────────
@@ -756,18 +491,18 @@ public static class SceneBuilder
     {
         EditorBuildSettings.scenes = new[]
         {
-            new EditorBuildSettingsScene(MainMenuPath, true),
-            new EditorBuildSettingsScene(GamePath,     true),
-            new EditorBuildSettingsScene(EndingPath,   true),
-            new EditorBuildSettingsScene(StealthPath,  true),
-            new EditorBuildSettingsScene(EscapePath,   true),
+            new EditorBuildSettingsScene(MainMenuPath,         true),
+            new EditorBuildSettingsScene(GamePath,             true),
+            new EditorBuildSettingsScene(EndingPath,           true),
+            new EditorBuildSettingsScene(ExplorationScenePath, true),
+            new EditorBuildSettingsScene(SyntyDemoPath,        true),
         };
 
         // Always start Play mode from MainMenu regardless of which scene is open
         var mainMenuAsset = AssetDatabase.LoadAssetAtPath<SceneAsset>(MainMenuPath);
         EditorSceneManager.playModeStartScene = mainMenuAsset;
 
-        Debug.Log("[SceneBuilder] Build Settings: MainMenu(0), Game(1), Ending(2), StealthScene(3), EscapeScene(4).");
+        Debug.Log("[SceneBuilder] Build Settings: MainMenu(0), Game(1), Ending(2), ExplorationScene(3), Demo(4).");
     }
 
     // ─── UI Helpers ───────────────────────────────────────────────────────────

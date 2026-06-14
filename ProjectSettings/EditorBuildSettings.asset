@@ -15,11 +15,11 @@ EditorBuildSettings:
     path: Assets/Scenes/Ending.unity
     guid: b690131f316744a6994e0b62c85234d1
   - enabled: 1
-    path: Assets/Scenes/StealthScene.unity
-    guid: 3823d50b028f24a0692833564cf78bd3
+    path: Assets/Scenes/ExplorationScene.unity
+    guid: 9c0468c578d9e4280b225d7c2b559697
   - enabled: 1
-    path: Assets/Scenes/EscapeScene.unity
-    guid: 59258a893d11d4035b33d6faf8df063e
+    path: Assets/Synty/PolygonAncientEmpire/Scenes/Demo.unity
+    guid: 691d16156d304ef488f0bee1744f4e27
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0

@@ -79,17 +79,17 @@ public class EventManager : MonoBehaviour
         SaveManager.Instance?.Save();
 
         // Check whether this advance should launch a gameplay scene instead
-        if (ShouldLoadStealthScene())
+        if (ShouldLoadExplorationScene())
         {
             ResumeIndex = _currentIndex;
-            GameManager.Instance.LoadStealthScene();
+            GameManager.Instance.LoadExplorationScene();
             return;
         }
 
         if (ShouldLoadEscapeScene())
         {
             ResumeIndex = _currentIndex;
-            GameManager.Instance.LoadEscapeScene();
+            GameManager.Instance.LoadExplorationScene();
             return;
         }
 
@@ -135,10 +135,10 @@ public class EventManager : MonoBehaviour
     // ── Gameplay scene routing ────────────────────────────────────────────────
 
     /// <summary>
-    /// Load the stealth scene before the Garden of Gethsemane (event_5)
+    /// Load the exploration scene before the Garden of Gethsemane (event_5)
     /// when the player has already tried to interfere with Judas.
     /// </summary>
-    private bool ShouldLoadStealthScene()
+    private bool ShouldLoadExplorationScene()
     {
         if (_currentIndex != 5) return false;  // only gate event_5
         var mem = StateManager.Instance?.Memory;
@@ -149,7 +149,7 @@ public class EventManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Load the escape scene before Trial Before Pilate (event_6)
+    /// Load the exploration scene before Trial Before Pilate (event_6)
     /// when the player made a public defence of Jesus that would be remembered.
     /// </summary>
     private bool ShouldLoadEscapeScene()
