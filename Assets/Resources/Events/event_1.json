@@ -2,7 +2,11 @@
   "id": "event_1",
   "title": "Entry Into Jerusalem",
   "isCanonical": true,
-  "text": "The jump worked.\n\nYou stagger into open sunlight, heart hammering. The dust is real. The noise is real. Crowds line the road ahead, waving palm branches as Jesus rides a young donkey through the gates of Jerusalem. The air smells of incense and animal sweat and warm stone. Children are running alongside the procession, laughing.\n\nYou are here. This is the week everything changes. You know exactly how it ends.\n\nNo one around you does.\n\nWhat do you do?",
+  "text": "You are here. This is the week everything changes. You know exactly how it ends.\n\nNo one around you does.\n\nWhat do you do?",
+  "slideshowTexts": [
+    "The jump worked.\n\nYou stagger into open sunlight, heart hammering. The dust is real. The noise is real. ",
+    "Crowds line the road ahead, waving palm branches as Jesus rides a young donkey through the gates of Jerusalem. The air smells of incense and animal sweat and warm stone. Children are running alongside the procession, laughing."
+  ],
   "choices": [
     {
       "text": "Observe quietly. Do not draw attention to yourself.",

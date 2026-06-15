@@ -2,7 +2,13 @@
   "id": "event_7",
   "title": "The Crucifixion",
   "isCanonical": true,
-  "text": "Golgotha. The Place of the Skull.\n\nNo matter what you did, no matter what you said — here it is. The cross is upright. The nails were driven. The sky has grown strange, a bruised yellow-grey at midday. The crowd is thinning now, some weeping, some mocking, most simply watching in silence.\n\nYou stand at the edge of the hill. Some of the disciples are here — those who did not flee. Mary is here. A centurion stands guard.\n\nYou have pushed against prophecy harder than anyone. You warned him. You tried to stop Judas. You called out in the crowd. And yet — here you are. Here he is.\n\nThe prophecy was not a plan that could be disrupted. It was a shape the world was always moving toward. You were inside it all along.\n\nYou are the only one who knows what you tried to do.",
+  "text": "Golgotha. The Place of the Skull.\n\nYou stand at the edge of the hill. Some of the disciples are here — those who did not flee. Mary is here. A centurion stands guard.\n\nYou have pushed against prophecy harder than anyone. You warned him. You tried to stop Judas. You called out in the crowd. And yet — here you are. Here he is.\n\nThe prophecy was not a plan that could be disrupted. It was a shape the world was always moving toward. You were inside it all along.\n\nYou are the only one who knows what you tried to do.",
+  "slideshowTexts": [
+    "No matter what you did, no matter what you said — here it is.",
+    "The nails were driven. ",
+    "The cross is upright. ",
+    "The crowd is thinning now, some weeping, some mocking, most simply watching in silence."
+    ],
   "choices": [
     {
       "text": "Kneel. Bear witness in silence. Let history record what it must.",

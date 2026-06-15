@@ -2,7 +2,10 @@
   "id": "event_3",
   "title": "The Betrayal Formation",
   "isCanonical": true,
-  "text": "You catch a glimpse of it happening in a side street near the Temple treasury. Judas Iscariot slips away from the other disciples. He meets with two men in dark robes — Temple officials. Coins change hands. Thirty silver pieces. He nods. He smiles thinly.\n\nNo one else has seen this. The other disciples are a street away, talking among themselves. You are the only witness.\n\nThe betrayal is being arranged right now, in front of you.",
+  "text": "How do you respond?",
+  "slideshowTexts": [
+    "You catch a glimpse of it happening in a side street near the Temple treasury. Judas Iscariot slips away from the other disciples. He meets with two men in dark robes — Temple officials. Coins change hands. Thirty silver pieces. He nods. He smiles thinly.\n\nNo one else has seen this. The other disciples are a street away, talking among themselves. You are the only witness.\n\nThe betrayal is being arranged right now, in front of you."
+  ],
   "choices": [
     {
       "text": "Do nothing. This was always going to happen.",

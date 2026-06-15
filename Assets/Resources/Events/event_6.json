@@ -2,7 +2,10 @@
   "id": "event_6",
   "title": "Trial Before Pilate",
   "isCanonical": true,
-  "text": "Dawn. You are outside the governor's palace. Pontius Pilate has brought Jesus and Barabbas — convicted of murder — before a crowd in the open courtyard. Passover custom gives the crowd the power to release one prisoner. He is offering them a choice.\n\nThe crowd is large and uneasy. Temple officials are working the edges, whispering in ears, hissing instructions. You can hear them nudging people toward the name of Barabbas.\n\nPilate looks reluctant. He has washed his hands of this already in his mind. The crowd is the instrument. And you are inside it.\n\nYou have one last chance to push back against what is coming.",
+  "text": "The crowd is the instrument. And you are inside it.\n\nYou have one last chance to push back against what is coming.",
+  "slideshowTexts": [
+    "Dawn. You are outside the governor's palace. Pontius Pilate has brought Jesus and Barabbas — convicted of murder — before a crowd in the open courtyard. Passover custom gives the crowd the power to release one prisoner. He is offering them a choice.\n\nThe crowd is large and uneasy. Temple officials are working the edges, whispering in ears, hissing instructions. You can hear them nudging people toward the name of Barabbas.\n\nPilate looks reluctant. He has washed his hands of this already in his mind."
+  ],
   "choices": [
     {
       "text": "Stay silent. Whatever the crowd decides, it was meant to be.",

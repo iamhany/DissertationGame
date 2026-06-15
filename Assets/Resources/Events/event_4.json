@@ -2,7 +2,10 @@
   "id": "event_4",
   "title": "The Last Supper",
   "isCanonical": true,
-  "text": "You have found a way into the upper room. The disciples recline at the long table. Jesus breaks bread, passes wine, speaks quietly of remembrance and sacrifice. There is a heaviness in the room — not grief yet, but something close to it.\n\nJesus speaks: 'One of you will betray me.' The disciples look at each other in shock and confusion.\n\nYou know the answer. You know more than anyone in this room.\n\nAnd you notice Jesus glancing — just for a moment — directly at you, the stranger at the edge of the gathering.",
+  "text": "Jesus speaks: 'One of you will betray me.' The disciples look at each other in shock and confusion.\n\nYou know the answer. You know more than anyone in this room.\n\nAnd you notice Jesus glancing — just for a moment — directly at you, the stranger at the edge of the gathering.",
+  "slideshowTexts": [
+    "You have found a way into the upper room. The disciples recline at the long table. Jesus breaks bread, passes wine, speaks quietly of remembrance and sacrifice. There is a heaviness in the room — not grief yet, but something close to it."
+  ],
   "choices": [
     {
       "text": "Say nothing. Sit in silence and bear witness.",
