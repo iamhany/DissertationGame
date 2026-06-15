@@ -25,6 +25,7 @@ public class MainMenuController : MonoBehaviour
     public GameObject     nameEntryPanel;
     public TMP_InputField nameInputField;
     public Button         confirmNameButton;
+    public Button         nameBackButton;
 
     [Header("Settings Panel")]
     public GameObject settingsPanel;
@@ -51,6 +52,9 @@ public class MainMenuController : MonoBehaviour
         if (confirmNameButton != null)
             confirmNameButton.onClick.AddListener(OnConfirmNameClicked);
 
+        if (nameBackButton != null)
+            nameBackButton.onClick.AddListener(OnNameBackClicked);
+
         // Start with sub-panels hidden
         if (nameEntryPanel != null) nameEntryPanel.SetActive(false);
         if (settingsPanel  != null) settingsPanel.SetActive(false);
@@ -58,10 +62,25 @@ public class MainMenuController : MonoBehaviour
 
     // ── Button handlers ──────────────────────────────────────────────────────
 
+    private void SetMainButtonsVisible(bool visible)
+    {
+        if (newGameButton  != null) newGameButton.gameObject.SetActive(visible);
+        if (continueButton != null && (visible || continueButton.gameObject.activeSelf))
+            continueButton.gameObject.SetActive(visible && SaveManager.Instance != null && SaveManager.Instance.HasSave());
+        if (settingsButton != null) settingsButton.gameObject.SetActive(visible);
+    }
+
     private void OnNewGameClicked()
     {
         SaveManager.Instance?.ClearSave();
         if (nameEntryPanel != null) nameEntryPanel.SetActive(true);
+        SetMainButtonsVisible(false);
+    }
+
+    private void OnNameBackClicked()
+    {
+        if (nameEntryPanel != null) nameEntryPanel.SetActive(false);
+        SetMainButtonsVisible(true);
     }
 
     private void OnContinueClicked()
@@ -80,7 +99,10 @@ public class MainMenuController : MonoBehaviour
 
     private void ToggleSettings()
     {
-        if (settingsPanel != null)
-            settingsPanel.SetActive(!settingsPanel.activeSelf);
+        if (settingsPanel == null) return;
+
+        bool opening = !settingsPanel.activeSelf;
+        settingsPanel.SetActive(opening);
+        SetMainButtonsVisible(!opening);
     }
 }

@@ -18,6 +18,7 @@ public class EndingController : MonoBehaviour
     [Header("Main Ending UI")]
     public TMP_Text titleText;
     public TMP_Text bodyText;
+    public GameObject bodyPanel;
 
     [Header("Belief Choice UI (Canon / DistortedWitness only)")]
     public GameObject   beliefChoicePanel;
@@ -40,10 +41,18 @@ public class EndingController : MonoBehaviour
     [Tooltip("Seconds after Paradox text before exit menu appears.")]
     public float paradoxExitDelay = 5f;
 
+    [Header("Story Images")]
+    public StoryImageDisplay endingImageDisplay;
+    public StoryImageLibrary imageLibrary;
+
     private EndingData _ending;
 
     void Start()
     {
+        // Auto-load StoryImageLibrary from Resources if not wired in Inspector
+        if (imageLibrary == null)
+            imageLibrary = Resources.Load<StoryImageLibrary>("StoryImageLibrary");
+
         var propState = ProphecyManager.Instance?.State    ?? new ProphecyState();
         var profile   = GameManager.Instance?.PlayerProfile ?? new PlayerProfile();
 
@@ -53,30 +62,25 @@ public class EndingController : MonoBehaviour
         ConfigureBeliefChoicePanel();
         ConfigureExitMenu();
 
-        // Paradox ending has no belief choice — show exit menu on a timer
-        if (!_ending.RequiresBeliefChoice)
-            StartCoroutine(ShowExitMenuDelayed(paradoxExitDelay));
+        StartCoroutine(RunEndingSequence());
     }
 
     // ── Text display ────────────────────────────────────────────────────────
 
     private void ApplyEndingText()
     {
-        // Title intentionally not shown
         if (titleText != null) titleText.gameObject.SetActive(false);
-        if (bodyText  != null) bodyText.text  = _ending.Body;
+        if (bodyText  != null) bodyText.text = _ending.Body;
+        if (bodyPanel != null) bodyPanel.SetActive(false);   // shown after image sequence
     }
 
     // ── Belief-choice panel ─────────────────────────────────────────────────
 
     private void ConfigureBeliefChoicePanel()
     {
-        bool show = _ending.RequiresBeliefChoice;
-
+        // Always start hidden — RunEndingSequence shows it at the right time
         if (beliefChoicePanel != null)
-            beliefChoicePanel.SetActive(show);
-
-        if (!show) return;
+            beliefChoicePanel.SetActive(false);
 
         // Label the buttons
         if (believeButtonLabel != null)
@@ -88,7 +92,7 @@ public class EndingController : MonoBehaviour
         if (choicePromptText != null)
             choicePromptText.text = "After experiencing those events yourself — what do you believe now?";
 
-        // Hide result until a choice is made
+        // Hide result text
         if (choiceResultText != null)
         {
             choiceResultText.text = string.Empty;
@@ -111,22 +115,96 @@ public class EndingController : MonoBehaviour
 
     private void OnBeliefChosen(bool choosesFaith)
     {
-        // Lock both buttons so the choice cannot be changed
         if (believeButton  != null) believeButton.interactable  = false;
         if (rationalButton != null) rationalButton.interactable = false;
+        // Hide the question panel immediately
+        if (beliefChoicePanel != null) beliefChoicePanel.SetActive(false);
 
-        string resolution = EndingResolver.GetBeliefResolution(choosesFaith);
-
-        if (choiceResultText != null)
+        if (choosesFaith)
         {
-            choiceResultText.gameObject.SetActive(true);
-            choiceResultText.text = resolution;
-            StartCoroutine(FadeInThenShowExit(choiceResultText));
+            // Believe path: go straight to exit menu, no extra images
+            if (exitMenuPanel != null) exitMenuPanel.SetActive(true);
         }
         else
         {
-            StartCoroutine(ShowExitMenuDelayed(1.5f));
+            if (exitMenuPanel != null) exitMenuPanel.SetActive(true);
         }
+    }
+
+    // ── Ending image sequences ─────────────────────────────────────────────
+
+    private IEnumerator RunEndingSequence()
+    {
+        bool defended = (_ending.Type != EndingType.Paradox) &&
+                        (StateManager.Instance?.Memory?.MadePublicDefence ?? false);
+        float holdTime = endingImageDisplay != null ? endingImageDisplay.slideshowHoldTime : 2.5f;
+
+        // Always play ending_0 and ending_1
+        if (endingImageDisplay != null && imageLibrary?.endingImages?.Length > 1)
+        {
+            yield return endingImageDisplay.FadeTo(imageLibrary.endingImages[0]);
+            yield return new WaitForSeconds(holdTime);
+            yield return endingImageDisplay.FadeTo(imageLibrary.endingImages[1]);
+            yield return new WaitForSeconds(holdTime);
+        }
+
+        if (defended && endingImageDisplay != null && imageLibrary?.endingImages?.Length > 3)
+        {
+            // Defender path: show ending_2 and ending_3, then exit menu
+            yield return endingImageDisplay.FadeTo(imageLibrary.endingImages[2]);
+            yield return new WaitForSeconds(holdTime);
+            yield return endingImageDisplay.FadeTo(imageLibrary.endingImages[3]);
+            yield return new WaitForSeconds(holdTime);
+            if (exitMenuPanel != null) exitMenuPanel.SetActive(true);
+        }
+        else if (_ending.RequiresBeliefChoice)
+        {
+            // Non-defender: reveal body text and the belief-choice panel
+            if (bodyPanel != null) { bodyPanel.SetActive(true); ForceBodyPanelLayout(); }
+            if (beliefChoicePanel != null) beliefChoicePanel.SetActive(true);
+        }
+        else
+        {
+            // Paradox path: ending_2, then ending_3 with the 13th-disciple text overlaid
+            if (endingImageDisplay != null && imageLibrary?.endingImages?.Length > 3)
+            {
+                yield return endingImageDisplay.FadeTo(imageLibrary.endingImages[2]);
+                yield return new WaitForSeconds(holdTime);
+                yield return endingImageDisplay.FadeTo(imageLibrary.endingImages[3]);
+                // Show the bible verse text on top of ending_3
+                if (bodyPanel != null) { bodyPanel.SetActive(true); ForceBodyPanelLayout(); }
+                yield return new WaitForSeconds(holdTime);
+                // Fade image to black; text remains visible
+                yield return endingImageDisplay.FadeTo(null);
+            }
+            else
+            {
+                if (bodyPanel != null) { bodyPanel.SetActive(true); ForceBodyPanelLayout(); }
+            }
+            yield return new WaitForSeconds(paradoxExitDelay);
+            if (exitMenuPanel != null) exitMenuPanel.SetActive(true);
+        }
+    }
+
+    private void ForceBodyPanelLayout()
+    {
+        if (bodyPanel == null) return;
+        UnityEngine.Canvas.ForceUpdateCanvases();
+        UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(
+            bodyPanel.GetComponent<RectTransform>());
+    }
+
+    private IEnumerator ShowEndingImagesAndExit()
+    {
+        float holdTime = endingImageDisplay != null ? endingImageDisplay.slideshowHoldTime : 2.5f;
+        if (endingImageDisplay != null && imageLibrary?.endingImages?.Length > 3)
+        {
+            yield return endingImageDisplay.FadeTo(imageLibrary.endingImages[2]);
+            yield return new WaitForSeconds(holdTime);
+            yield return endingImageDisplay.FadeTo(imageLibrary.endingImages[3]);
+            yield return new WaitForSeconds(holdTime);
+        }
+        if (exitMenuPanel != null) exitMenuPanel.SetActive(true);
     }
 
     // ── Exit menu ────────────────────────────────────────────────────────

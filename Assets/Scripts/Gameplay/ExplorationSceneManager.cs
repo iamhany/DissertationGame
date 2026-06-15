@@ -29,6 +29,8 @@ public class ExplorationSceneManager : MonoBehaviour
     public Button     continueButton;
     public GameObject retryPanel;
     public Button     retryButton;
+    [Tooltip("Testing only — skips the level immediately.")]
+    public Button     skipButton;
 
     // ── Private state ─────────────────────────────────────────────────────────
 
@@ -41,6 +43,8 @@ public class ExplorationSceneManager : MonoBehaviour
     private GuardController[] _guards;
     private Vector3[]         _guardStartPos;
     private Quaternion[]      _guardStartRot;
+
+    private EscapeGate[]      _gates;
 
     private bool _sceneDone;
 
@@ -56,15 +60,31 @@ public class ExplorationSceneManager : MonoBehaviour
     void OnDestroy()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        GuardAlertNetwork.Clear();
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         if (mode != LoadSceneMode.Additive) return;
-        // sceneLoaded fires after OnEnable() but before Update() on the new objects.
-        // Destroy() is deferred (end-of-frame), so the duplicate would still run
-        // Update() this frame. SetActive(false) takes effect immediately and
-        // prevents any further Update/OnEnable calls; Destroy cleans it up later.
+
+        // sceneLoaded fires before Start() on the newly loaded scene's objects.
+        // Disabling here prevents FMOD from switching audio output, duplicate
+        // cameras rendering, or duplicate EventSystems processing input.
+        foreach (var root in scene.GetRootGameObjects())
+        {
+            foreach (var cam in root.GetComponentsInChildren<Camera>(true))
+                cam.enabled = false;
+            foreach (var al in root.GetComponentsInChildren<AudioListener>(true))
+                al.enabled = false;
+            foreach (var src in root.GetComponentsInChildren<AudioSource>(true))
+            {
+                src.Stop();
+                src.enabled = false;
+            }
+        }
+
+        // Kill duplicate EventSystems immediately (SetActive false so they don't
+        // process input even for the remainder of this frame).
         var allES = FindObjectsByType<UnityEngine.EventSystems.EventSystem>(FindObjectsSortMode.None);
         for (int i = 1; i < allES.Length; i++)
         {
@@ -78,28 +98,15 @@ public class ExplorationSceneManager : MonoBehaviour
         var op = SceneManager.LoadSceneAsync(SyntyDemoSceneName, LoadSceneMode.Additive);
         yield return op;
 
-        if (op != null && op.isDone)
-        {
-            var demoScene = SceneManager.GetSceneByName(SyntyDemoSceneName);
-            foreach (var root in demoScene.GetRootGameObjects())
-            {
-                foreach (var cam in root.GetComponentsInChildren<Camera>(true))
-                    cam.enabled = false;
-                foreach (var al in root.GetComponentsInChildren<AudioListener>(true))
-                    al.enabled = false;
-                // Disable AudioSources to prevent FMOD re-initialisation errors
-                // caused by the Demo scene's audio settings conflicting with the
-                // already-running FMOD system.
-                foreach (var src in root.GetComponentsInChildren<AudioSource>(true))
-                    src.enabled = false;
-            }
-        }
+        // Camera / AudioListener / AudioSource suppression already handled in OnSceneLoaded.
 
         _player = FindFirstObjectByType<FirstPersonController>();
         if (_player != null) _playerStartPos = _player.transform.position;
 
         _zones        = FindObjectsByType<JumpPassZone>(FindObjectsSortMode.None);
         _clearedCount = 0;
+
+        _gates = FindObjectsByType<EscapeGate>(FindObjectsSortMode.None);
 
         _guards        = FindObjectsByType<GuardController>(FindObjectsSortMode.None);
         _guardStartPos = new Vector3[_guards.Length];
@@ -114,6 +121,7 @@ public class ExplorationSceneManager : MonoBehaviour
         if (retryPanel    != null) retryPanel.SetActive(false);
         if (continueButton != null) continueButton.onClick.AddListener(OnContinueClicked);
         if (retryButton    != null) retryButton.onClick.AddListener(OnRetryClicked);
+        if (skipButton     != null) skipButton.onClick.AddListener(() => TriggerSuccess("[SKIP] Level bypassed."));
 
         RefreshUI();
     }
@@ -127,9 +135,20 @@ public class ExplorationSceneManager : MonoBehaviour
         {
             TriggerSuccess("You have witnessed the Garden.\nReturn to the story?");
         }
+        // Q = skip level (testing shortcut, mirrors the skip button)
+        if (UnityEngine.InputSystem.Keyboard.current?.qKey.wasPressedThisFrame == true)
+        {
+            TriggerSuccess("[SKIP] Level bypassed.");
+        }
     }
 
     // ── Public callbacks ──────────────────────────────────────────────────────
+
+    /// <summary>Called by EscapeGate when the player reaches the exit.</summary>
+    public void OnEscapeGateReached()
+    {
+        TriggerSuccess("You escaped the Garden!\nReturn to the story?");
+    }
 
     /// <summary>Called by JumpPassZone when the player clears it.</summary>
     public void OnJumpPassZoneCleared(JumpPassZone zone)
@@ -166,11 +185,12 @@ public class ExplorationSceneManager : MonoBehaviour
 
     private void RefreshUI()
     {
-        bool hasZones = _zones != null && _zones.Length > 0;
+        bool hasGate  = _gates  != null && _gates.Length  > 0;
+        bool hasZones = _zones  != null && _zones.Length  > 0;
 
         if (instructionText != null)
-            instructionText.text = hasZones
-                ? "Evade the guards \u00b7 Jump over all barriers to escape"
+            instructionText.text = (hasGate || hasZones)
+                ? "Evade the guards \u00b7 Reach the blue pillar to escape"
                 : "Explore the Garden of Gethsemane\nWASD \u00b7 Mouse to look \u00b7 [E] to finish";
 
         if (progressText != null)

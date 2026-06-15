@@ -15,7 +15,7 @@
       "nextEventId": ""
     },
     {
-      "text": "Speak your name aloud into the wind. Refuse to be erased from this moment.",
+      "text": "You shout at the sky. You scream at the heavens. You ask God to curse Pilate, even if the guards will kill you for it.",
       "effects": { "faithVsSkepticism": -10, "literalVsSymbolic": -15, "trustInAuthority": -20, "proJesus": 10, "antiJesus": 0, "prophecyIntegrity": -15 },
       "nextEventId": ""
     }

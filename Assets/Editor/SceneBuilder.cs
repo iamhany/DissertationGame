@@ -36,6 +36,9 @@ public static class SceneBuilder
         EnsureDir(PrefabDir);
         EnsureDir(SceneDir);
 
+        // Populate / create StoryImageLibrary before any scene is built
+        AutoSetupStoryImages.SetupStoryImages();
+
         var prefab = CreateChoiceButtonPrefab();
 
         BuildMainMenuScene();
@@ -105,22 +108,16 @@ public static class SceneBuilder
         // ── Canvas ────────────────────────────────────────────────────────────
         var canvas = CreateCanvas("Canvas");
 
-        // Background
-        var bg = CreatePanel("Background", canvas.transform, Color.black);
+        // Background — set mainmenu.png as the background image
+        var bg = CreatePanel("Background", canvas.transform, Color.white);
         SetFill(bg);
-
-        // Title
-        var titleGO = CreateTMP("TitleText", canvas.transform,
-            "The Time Witness", 56, TextAlignmentOptions.Center, Color.white);
-        SetAnchors(titleGO.GetComponent<RectTransform>(),
-            new Vector2(0.1f, 0.76f), new Vector2(0.9f, 0.96f));
-
-        // Subtitle
-        var subtitleGO = CreateTMP("SubtitleText", canvas.transform,
-            "A Narrative Journey Through Biblical History",
-            22, TextAlignmentOptions.Center, new Color(0.8f, 0.8f, 0.8f));
-        SetAnchors(subtitleGO.GetComponent<RectTransform>(),
-            new Vector2(0.15f, 0.66f), new Vector2(0.85f, 0.76f));
+        var bgImg = bg.GetComponent<Image>();
+        var mainMenuSprite = AssetDatabase.LoadAssetAtPath<Sprite>(
+            "Assets/Images/StoryImages/mainmenu/mainmenu.png");
+        if (mainMenuSprite != null)
+            bgImg.sprite = mainMenuSprite;
+        else
+            bgImg.color = Color.black;  // fallback if image not found yet
 
         // ── Button column ─────────────────────────────────────────────────────
         var btnColRT = EmptyRect("ButtonColumn", canvas.transform);
@@ -160,6 +157,10 @@ public static class SceneBuilder
 
         var confirmBtn = CreateMenuButton("ConfirmNameButton", namePanelGO.transform, "Confirm");
         ((Button)confirmBtn).GetComponent<LayoutElement>().minHeight = 48f;
+
+        var nameBackBtn = CreateMenuButton("NameBackButton", namePanelGO.transform, "← Back");
+        ((Button)nameBackBtn).GetComponent<LayoutElement>().minHeight = 44f;
+
         namePanelGO.SetActive(false);
 
         // ── Settings Panel (hidden) ───────────────────────────────────────────
@@ -209,6 +210,7 @@ public static class SceneBuilder
         mmc.nameEntryPanel    = namePanelGO;
         mmc.nameInputField    = inputField;
         mmc.confirmNameButton = confirmBtn;
+        mmc.nameBackButton    = (Button)nameBackBtn;
         mmc.settingsPanel     = settingsPanelGO;
         mmc.settingsBackButton = (Button)settingsBackBtn;
 
@@ -241,7 +243,32 @@ public static class SceneBuilder
 
         // Background
         var bg = CreatePanel("Background", canvas.transform, Color.black);
-        SetFill(bg);
+        SetFill(bg);        var storyBg = bg.AddComponent<StoryImageDisplay>();
+        // ── Subtitle Panel (slideshow captions, auto-height, bottom-anchored) ─────
+        var subtitlePanelGO = new GameObject("SubtitlePanel");
+        subtitlePanelGO.transform.SetParent(canvas.transform, false);
+        subtitlePanelGO.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.72f);
+        var subtitleRT = subtitlePanelGO.GetComponent<RectTransform>();
+        subtitleRT.anchorMin        = new Vector2(0.05f, 0f);
+        subtitleRT.anchorMax        = new Vector2(0.95f, 0f);
+        subtitleRT.pivot            = new Vector2(0.5f, 0f);
+        subtitleRT.anchoredPosition = new Vector2(0f, 24f);
+        subtitleRT.sizeDelta        = new Vector2(0f, 0f);
+        var subtitleCSF = subtitlePanelGO.AddComponent<ContentSizeFitter>();
+        subtitleCSF.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        subtitleCSF.verticalFit   = ContentSizeFitter.FitMode.PreferredSize;
+        var subtitleVLG = subtitlePanelGO.AddComponent<VerticalLayoutGroup>();
+        subtitleVLG.padding                = new RectOffset(20, 20, 12, 12);
+        subtitleVLG.childControlWidth      = true;
+        subtitleVLG.childControlHeight     = true;   // must be true for CSF to measure height
+        subtitleVLG.childForceExpandWidth  = true;
+        subtitleVLG.childForceExpandHeight = false;
+        var subtitleTextGO = CreateTMP("SubtitleText", subtitlePanelGO.transform,
+            "", 20, TextAlignmentOptions.Center, Color.white);
+        var subtitleTMP = subtitleTextGO.GetComponent<TextMeshProUGUI>();
+        subtitleTMP.enableWordWrapping = true;
+        subtitleTMP.overflowMode       = TextOverflowModes.Overflow;
+        subtitlePanelGO.SetActive(false);
 
         // ── FadePanel (full-screen black overlay) ─────────────────────────────
         var fadePanelGO = CreatePanel("FadePanel", canvas.transform, Color.black);
@@ -251,24 +278,43 @@ public static class SceneBuilder
         var fadeCtrl = fadePanelGO.AddComponent<FadeController>();
 
         // ── DialoguePanel ─────────────────────────────────────────────────────
-        var dialoguePanelGO = CreatePanel("DialoguePanel", canvas.transform,
-            new Color(0f, 0f, 0f, 0.72f));
-        SetAnchors(dialoguePanelGO.GetComponent<RectTransform>(),
-            new Vector2(0.04f, 0.36f), new Vector2(0.96f, 0.94f));
+        // Auto-height panel, bottom-anchored just above the ChoiceContainer (y=0.34)
+        var dialoguePanelGO = new GameObject("DialoguePanel");
+        dialoguePanelGO.transform.SetParent(canvas.transform, false);
+        dialoguePanelGO.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.72f);
+        var dialogueRT = dialoguePanelGO.GetComponent<RectTransform>();
+        dialogueRT.anchorMin        = new Vector2(0.04f, 0.34f);
+        dialogueRT.anchorMax        = new Vector2(0.96f, 0.34f);
+        dialogueRT.pivot            = new Vector2(0.5f, 0f);
+        dialogueRT.anchoredPosition = new Vector2(0f, 8f);
+        dialogueRT.sizeDelta        = new Vector2(0f, 0f);
+        var dialogueCSF = dialoguePanelGO.AddComponent<ContentSizeFitter>();
+        dialogueCSF.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        dialogueCSF.verticalFit   = ContentSizeFitter.FitMode.PreferredSize;
+        var dialogueVLG = dialoguePanelGO.AddComponent<VerticalLayoutGroup>();
+        dialogueVLG.padding                = new RectOffset(20, 20, 14, 14);
+        dialogueVLG.childControlWidth      = true;
+        dialogueVLG.childControlHeight     = true;
+        dialogueVLG.childForceExpandWidth  = true;
+        dialogueVLG.childForceExpandHeight = false;
 
+        // Title text (hidden at runtime)
         var eventTitleGO = CreateTMP("TitleText", dialoguePanelGO.transform,
-            "", 26, TextAlignmentOptions.TopLeft, new Color(0.95f, 0.85f, 0.3f));
-        SetAnchors(eventTitleGO.GetComponent<RectTransform>(),
-            new Vector2(0.02f, 0.84f), new Vector2(0.98f, 1f));
+            "", 26, TextAlignmentOptions.Center, new Color(0.95f, 0.85f, 0.3f));
+        var titleTMP = eventTitleGO.GetComponent<TextMeshProUGUI>();
+        titleTMP.enableWordWrapping = true;
+        titleTMP.overflowMode       = TextOverflowModes.Overflow;
 
+        // Narrative text — centered, auto-wraps
         var narrativeGO = CreateTMP("NarrativeText", dialoguePanelGO.transform,
-            "", 20, TextAlignmentOptions.TopLeft, Color.white);
-        SetAnchors(narrativeGO.GetComponent<RectTransform>(),
-            new Vector2(0.02f, 0.02f), new Vector2(0.98f, 0.82f));
+            "", 20, TextAlignmentOptions.Center, Color.white);
+        var narrativeTMP = narrativeGO.GetComponent<TextMeshProUGUI>();
+        narrativeTMP.enableWordWrapping = true;
+        narrativeTMP.overflowMode       = TextOverflowModes.Overflow;
 
         var dialogueComp = dialoguePanelGO.AddComponent<DialoguePanel>();
-        dialogueComp.titleText     = eventTitleGO.GetComponent<TextMeshProUGUI>();
-        dialogueComp.narrativeText = narrativeGO.GetComponent<TextMeshProUGUI>();
+        dialogueComp.titleText     = titleTMP;
+        dialogueComp.narrativeText = narrativeTMP;
 
         // ── ChoiceContainer ───────────────────────────────────────────────────
         var choiceContainerRT = EmptyRect("ChoiceContainer", canvas.transform);
@@ -287,7 +333,9 @@ public static class SceneBuilder
         uiManager.fadeController     = fadeCtrl;
         uiManager.choiceContainer    = choiceContainerRT;
         uiManager.choiceButtonPrefab = choiceButtonPrefab;
-
+        uiManager.storyImageDisplay  = storyBg;
+        uiManager.subtitlePanel      = subtitlePanelGO;
+        uiManager.subtitleText       = subtitleTextGO.GetComponent<TextMeshProUGUI>();
         EditorSceneManager.SaveScene(scene, GamePath);
         Debug.Log($"[SceneBuilder] Game → {GamePath}");
     }
@@ -306,6 +354,7 @@ public static class SceneBuilder
         // Background
         var bg = CreatePanel("Background", canvas.transform, Color.black);
         SetFill(bg);
+        var endingStoryBg = bg.AddComponent<StoryImageDisplay>();
 
         // ── Title ─────────────────────────────────────────────────────────────
         var titleGO = CreateTMP("TitleText", canvas.transform,
@@ -313,11 +362,33 @@ public static class SceneBuilder
         SetAnchors(titleGO.GetComponent<RectTransform>(),
             new Vector2(0.05f, 0.82f), new Vector2(0.95f, 0.96f));
 
-        // ── Body ──────────────────────────────────────────────────────────────
-        var bodyGO = CreateTMP("BodyText", canvas.transform,
-            "", 19, TextAlignmentOptions.TopLeft, Color.white);
-        SetAnchors(bodyGO.GetComponent<RectTransform>(),
-            new Vector2(0.10f, 0.46f), new Vector2(0.90f, 0.81f));
+        // ── Body text panel (auto-height, centred, always on top) ────────────
+        // Wrapped in a dark semi-transparent panel so it's readable over any image.
+        var bodyPanelGO = new GameObject("BodyPanel");
+        bodyPanelGO.transform.SetParent(canvas.transform, false);
+        bodyPanelGO.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.78f);
+        var bodyPanelRT = bodyPanelGO.GetComponent<RectTransform>();
+        bodyPanelRT.anchorMin        = new Vector2(0.05f, 0.5f);
+        bodyPanelRT.anchorMax        = new Vector2(0.95f, 0.5f);
+        bodyPanelRT.pivot            = new Vector2(0.5f, 0.5f);
+        bodyPanelRT.anchoredPosition = new Vector2(0f, 0f);
+        bodyPanelRT.sizeDelta        = new Vector2(0f, 0f);
+        var bodyPanelCSF = bodyPanelGO.AddComponent<ContentSizeFitter>();
+        bodyPanelCSF.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        bodyPanelCSF.verticalFit   = ContentSizeFitter.FitMode.PreferredSize;
+        var bodyPanelVLG = bodyPanelGO.AddComponent<VerticalLayoutGroup>();
+        bodyPanelVLG.padding                = new RectOffset(24, 24, 20, 20);
+        bodyPanelVLG.childControlWidth      = true;
+        bodyPanelVLG.childControlHeight     = true;
+        bodyPanelVLG.childForceExpandWidth  = true;
+        bodyPanelVLG.childForceExpandHeight = false;
+
+        var bodyGO = CreateTMP("BodyText", bodyPanelGO.transform,
+            "", 19, TextAlignmentOptions.Center, Color.white);
+        var bodyTMP = bodyGO.GetComponent<TextMeshProUGUI>();
+        bodyTMP.enableWordWrapping = true;
+        bodyTMP.overflowMode       = TextOverflowModes.Overflow;
+        bodyPanelGO.SetActive(false);
 
         // ── Belief Choice Panel ───────────────────────────────────────────────
         var beliefPanelGO = CreatePanel("BeliefChoicePanel", canvas.transform,
@@ -370,7 +441,8 @@ public static class SceneBuilder
         var controllerGO = new GameObject("EndingController");
         var ctrl = controllerGO.AddComponent<EndingController>();
         ctrl.titleText          = titleGO.GetComponent<TextMeshProUGUI>();
-        ctrl.bodyText           = bodyGO.GetComponent<TextMeshProUGUI>();
+        ctrl.bodyText           = bodyTMP;
+        ctrl.bodyPanel          = bodyPanelGO;
         ctrl.beliefChoicePanel  = beliefPanelGO;
         ctrl.choicePromptText   = choicePromptGO.GetComponent<TextMeshProUGUI>();
         ctrl.believeButton      = believeBtn;
@@ -382,6 +454,7 @@ public static class SceneBuilder
         ctrl.exitQuestionText   = exitQuestionGO.GetComponent<TextMeshProUGUI>();
         ctrl.restartButton      = restartBtn;
         ctrl.quitButton         = quitBtn;
+        ctrl.endingImageDisplay = endingStoryBg;
 
         EditorSceneManager.SaveScene(scene, EndingPath);
         Debug.Log($"[SceneBuilder] Ending → {EndingPath}");
@@ -410,6 +483,7 @@ public static class SceneBuilder
         cc.radius = 0.35f;
         cc.center = new Vector3(0f, 0.9f, 0f);
         var fpc = playerGO.AddComponent<FirstPersonController>();
+        playerGO.AddComponent<PlayerStealthController>();
 
         // ── First-person camera (child of player) ─────────────────────────────
         var camGO = new GameObject("First Person Camera");
@@ -473,6 +547,67 @@ public static class SceneBuilder
         var (retryBtn, _) = CreateAnchoredButton("RetryButton", retryPanelGO.transform,
             "Try Again", new Vector2(0.2f, 0.08f), new Vector2(0.8f, 0.38f));
 
+        // ── Guards ───────────────────────────────────────────────────────────
+        // Three guards with patrol waypoints spread around the scene centre.
+        // ExplorationSceneManager finds them via FindObjectsByType at runtime.
+        // Move these GameObjects in the Editor after running Build All Scenes
+        // to match your Synty Demo layout.
+        var guardPositions = new Vector3[]
+        {
+            new Vector3( 20f, 0f,  10f),
+            new Vector3(-18f, 0f,  22f),
+            new Vector3(  5f, 0f, -25f),
+        };
+
+        for (int gi = 0; gi < guardPositions.Length; gi++)
+        {
+            var guardGO = new GameObject($"Guard_{gi + 1}");
+            guardGO.transform.position = guardPositions[gi];
+
+            var gcc = guardGO.AddComponent<CharacterController>();
+            gcc.height = 1.8f;
+            gcc.radius = 0.35f;
+            gcc.center = new Vector3(0f, 0.9f, 0f);
+
+            // Synty soldier mesh as guard visual
+            const string soldierPath = "Assets/Synty/PolygonAncientEmpire/Prefabs/Characters/SM_Chr_Soldier_Male_01.prefab";
+            var soldierPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(soldierPath);
+            if (soldierPrefab != null)
+            {
+                var mesh = (GameObject)PrefabUtility.InstantiatePrefab(soldierPrefab, guardGO.transform);
+                mesh.transform.localPosition = Vector3.zero;
+                mesh.transform.localRotation = Quaternion.identity;
+            }
+            else
+            {
+                Debug.LogWarning($"[SceneBuilder] Could not find soldier prefab at {soldierPath}");
+            }
+
+            var gc = guardGO.AddComponent<GuardController>();
+
+            // 3 patrol waypoints in a triangle around the guard
+            float angle = gi * 120f * Mathf.Deg2Rad;
+            var offsets = new Vector3[]
+            {
+                new Vector3(Mathf.Cos(angle)          * 8f, 0f, Mathf.Sin(angle)          * 8f),
+                new Vector3(Mathf.Cos(angle + 2.09f)  * 8f, 0f, Mathf.Sin(angle + 2.09f)  * 8f),
+                new Vector3(Mathf.Cos(angle + 4.19f)  * 8f, 0f, Mathf.Sin(angle + 4.19f)  * 8f),
+            };
+
+            for (int wi = 0; wi < offsets.Length; wi++)
+            {
+                var wpGO = new GameObject($"Guard_{gi + 1}_Waypoint_{wi + 1}");
+                wpGO.transform.position = guardPositions[gi] + offsets[wi];
+                gc.waypoints.Add(wpGO.transform);
+            }
+        }
+
+        // ── Escape Gate ───────────────────────────────────────────────────────
+        // Position this to match your actual exit point in the Demo scene.
+        var gateGO = new GameObject("EscapeGate");
+        gateGO.transform.position = new Vector3(15f, 0f, 0f);
+        gateGO.AddComponent<EscapeGate>();
+
         esm.instructionText      = instrGO.GetComponent<TextMeshProUGUI>();
         esm.progressText         = progressGO.GetComponent<TextMeshProUGUI>();
         esm.continuePanel        = panelGO;
@@ -480,6 +615,14 @@ public static class SceneBuilder
         esm.continueButton       = contBtn;
         esm.retryPanel           = retryPanelGO;
         esm.retryButton          = retryBtn;
+
+        // ── Skip button (testing only, top-right corner) ──────────────────────
+        var (skipBtn, skipLabel) = CreateAnchoredButton("SkipButton", hudCanvas.transform,
+            "[SKIP LEVEL]", new Vector2(0.78f, 0.92f), new Vector2(0.99f, 0.99f));
+        skipLabel.fontSize = 16;
+        var skipBtnImg = skipBtn.GetComponent<Image>();
+        if (skipBtnImg != null) skipBtnImg.color = new Color(0.7f, 0.1f, 0.1f, 0.85f);
+        esm.skipButton = skipBtn;
 
         EditorSceneManager.SaveScene(scene, ExplorationScenePath);
         Debug.Log($"[SceneBuilder] ExplorationScene \u2192 {ExplorationScenePath}");

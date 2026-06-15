@@ -2,7 +2,10 @@
   "id": "event_5",
   "title": "The Garden of Gethsemane",
   "isCanonical": true,
-  "text": "Night. The garden smells of crushed olives and cold stone. Jesus is on his knees beneath a gnarled tree, praying alone. The disciples sleep a stone's throw away.\n\nThen — torchlight. Movement through the trees. Dozens of Temple guards, armoured and armed. And walking at the front: Judas Iscariot.\n\nHe is close now. Very close. You see his face in the torchlight: resolved, apologetic, terrified. He is about to close the distance between himself and Jesus and press a kiss to his cheek — the signal that tells the guards which man to take.\n\nThe garden is silent except for the crunch of sandals on dry earth.\n\nYou have seconds.",
+  "text": "What do you do?",
+  "slideshowTexts": [
+    "Night. The garden smells of crushed olives and cold stone. Jesus is on his knees beneath a gnarled tree, praying alone. The disciples sleep a stone's throw away.\n\nThen — torchlight. Movement through the trees. Dozens of Temple guards, armoured and armed. And walking at the front: Judas Iscariot.\n\nHe is close now. Very close. You see his face in the torchlight: resolved, apologetic, terrified. He is about to close the distance between himself and Jesus and press a kiss to his cheek — the signal that tells the guards which man to take.\n\nThe garden is silent except for the crunch of sandals on dry earth.\n\nYou have seconds."
+  ],
   "choices": [
     {
       "text": "Step back into the shadows. Let it happen.",

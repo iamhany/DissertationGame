@@ -1,0 +1,90 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ba39b6f9e9e6446cbbb66998c5cdf53, type: 3}
+  m_Name: StoryImageLibrary
+  m_EditorClassIdentifier: Assembly-CSharp::StoryImageLibrary
+  events:
+  - eventId: event_0
+    slideshowFrames:
+    - {fileID: -4941527074919884733, guid: 00e3432e1f98240ae87e620b5af0fc0a, type: 3}
+    - {fileID: 3290367994783468587, guid: 8044fe52f29774a3db02399de8bc047d, type: 3}
+    choiceImages: []
+    postChoiceFrames:
+    - {fileID: 2269252959758646940, guid: 1e5a72a3245f84790a3ae6a494c196fd, type: 3}
+  - eventId: event_1
+    slideshowFrames:
+    - {fileID: -5952182680295260929, guid: 791d0fc5272324c1cab516dac60fdb5a, type: 3}
+    - {fileID: -6645597186602433737, guid: 8aee56148737f43e6baac10900a907c1, type: 3}
+    choiceImages:
+    - {fileID: 8352367635898877285, guid: 0aa87d6f0d3fe47ad89c70bbf1163965, type: 3}
+    - {fileID: 5483734016298121021, guid: 80e5d8e31a2bb4d7aa8a72276f360905, type: 3}
+    - {fileID: 6762919586471973627, guid: 5df05a41b4b4246be8b5c2e225dc63ab, type: 3}
+    postChoiceFrames: []
+  - eventId: event_2
+    slideshowFrames:
+    - {fileID: -5952182680295260929, guid: a3028194c69e54fc7b5f8551cb8aa168, type: 3}
+    choiceImages:
+    - {fileID: 8352367635898877285, guid: 19641c2f6d67e40ffb931b118a36c950, type: 3}
+    - {fileID: -8485829077849546020, guid: ff20acfed403f4c9ea19c5c28f7d692e, type: 3}
+    - {fileID: -7447912952629926001, guid: 6f54c79376eca4a828928ab25af00a3f, type: 3}
+    postChoiceFrames: []
+  - eventId: event_3
+    slideshowFrames:
+    - {fileID: 247708395564678831, guid: 2cef60652a7b4434b8c48fa708412633, type: 3}
+    choiceImages:
+    - {fileID: 978764201939134467, guid: 5156b5480ac3f4b399cf7988063972f8, type: 3}
+    - {fileID: -1925903831346889374, guid: a70e36c68fac7410da3affc59fe6166d, type: 3}
+    - {fileID: 1954586133558273620, guid: fb66c825463b243bda66a6645b287262, type: 3}
+    postChoiceFrames: []
+  - eventId: event_4
+    slideshowFrames:
+    - {fileID: -3822184862005611212, guid: 927de2d17c66845ecbfed67977907afc, type: 3}
+    choiceImages:
+    - {fileID: -6388729921811642358, guid: a5724dc6b5989470bb99621fd320a0ce, type: 3}
+    - {fileID: -9194502028839091581, guid: 4ed912756f6e24553911f4270fadfd84, type: 3}
+    - {fileID: -6922564523701350768, guid: bd79bf3529dd242bd87c613ac59d197e, type: 3}
+    postChoiceFrames: []
+  - eventId: event_5
+    slideshowFrames:
+    - {fileID: 6090939089130428804, guid: 644478264750845a08d6105ea44bad2f, type: 3}
+    choiceImages:
+    - {fileID: -6351239135583410918, guid: ef48f4cdb0baa41f1adc9719c52b7c64, type: 3}
+    - {fileID: -7833825812336914699, guid: e6dd03e9258fc4f47bf025d1973976a0, type: 3}
+    - {fileID: -4506298950598757709, guid: 5233d29c70f8a4e58b46f16f9f1c24c5, type: 3}
+    postChoiceFrames:
+    - {fileID: 8440668303814896769, guid: ec749e7f82c144fc0afed18a7f313a69, type: 3}
+  - eventId: event_6
+    slideshowFrames:
+    - {fileID: -5809571772904691531, guid: b6e29188d73b04b23a09223f98ce63f5, type: 3}
+    choiceImages:
+    - {fileID: 7782225120833995266, guid: 9497f99e1c58e47cc8d506877eff3920, type: 3}
+    - {fileID: -6758082927262782219, guid: f5b7af0ea7a6f4b90a48f99f42a30a4d, type: 3}
+    - {fileID: -2504108202321071771, guid: 98aa01ad70a2a4bab82a74ab431ff753, type: 3}
+    postChoiceFrames: []
+  - eventId: event_7
+    slideshowFrames:
+    - {fileID: 5867376485387996052, guid: 8a7abaeaa38b24637828c16f0723b362, type: 3}
+    - {fileID: -1421826862133019672, guid: b17140212f0d34517bae7fc5a71a4df9, type: 3}
+    - {fileID: -2374578265626883863, guid: 9d973841c659341aba44b037d82b9488, type: 3}
+    - {fileID: -7853437696725984835, guid: 9447f4d7cacc54b8a97bde0ee149f7ef, type: 3}
+    choiceImages:
+    - {fileID: 1543887795679765735, guid: 78543dd23fe1b4cd984df372722d4891, type: 3}
+    - {fileID: 0}
+    - {fileID: -5480656304308265430, guid: 69d7286e462b54310951f42d9f2c1ef0, type: 3}
+    postChoiceFrames: []
+  mainMenuBackground: {fileID: -9114789695211296444, guid: 7019e59fba4434735bbc946893b3246d, type: 3}
+  choiceBackground: {fileID: -7925622563710479580, guid: 804c353acb1ab40389183b615f08d23d, type: 3}
+  endingImages:
+  - {fileID: -7692783230237307835, guid: 0590fc18583284fcc8a58e692e3ca44c, type: 3}
+  - {fileID: 8702430557251106356, guid: b3840f340932544fe9b333c2b46a461a, type: 3}
+  - {fileID: 9046091418944515882, guid: d4970398e63f34b87b537d78de51b9bc, type: 3}
+  - {fileID: -104351585000316060, guid: 09c6cd030c7fe49698d1223fbed9f5e5, type: 3}

@@ -56,7 +56,7 @@ public static class EndingResolver
         {
             EndingType.Canon            => "Return To The Present",
             EndingType.DistortedWitness => "Return To The Present",
-            EndingType.Paradox          => "The Fourteenth Disciple",
+            EndingType.Paradox          => "The Thirteenth Disciple",
             _                           => string.Empty
         };
     }
@@ -89,12 +89,12 @@ public static class EndingResolver
                 "You read the verse on the page. You read it again. " +
                 "Your mouth goes dry.\n\n" +
                 "The passage lists the disciples of Jesus. You count them.\n\n" +
-                "Fourteen.\n\n" +
-                "Simon, who is called Peter. Andrew his brother. James the son of Zebedee. " +
-                "John his brother. Philip. Bartholomew. Thomas. Matthew the tax collector. " +
-                "James the son of Alphaeus. Thaddaeus. Simon the Zealot. Judas Iscariot. " +
-                "Matthias, chosen after.\n\n" +
-                $"And the fourteenth — {playerName}.\n\n" +
+                "Thirteen.\n\n" +
+                "Matthew 10\n" +
+                "2 These are the names of the thirteen apostles: first, Simon (who is called Peter) and his brother Andrew; James son of Zebedee, and his brother John;\n" +
+                "3 Philip and Bartholomew; Thomas and Matthew the tax collector; James son of Alphaeus, and Thaddaeus;\n" +
+                "4 Simon the Zealot, Judas Iscariot, who betrayed him;\n" +
+                $"5 And {playerName}, the most loyal one, who tried to change the prophecy with outmost courage.\n\n" +
                 "History did not erase you. It wrote you in.",
 
             _ => string.Empty
