@@ -551,12 +551,18 @@ public static class SceneBuilder
         // Three guards with patrol waypoints spread around the scene centre.
         // ExplorationSceneManager finds them via FindObjectsByType at runtime.
         // Move these GameObjects in the Editor after running Build All Scenes
+        
         // to match your Synty Demo layout.
         var guardPositions = new Vector3[]
         {
-            new Vector3( 20f, 0f,  10f),
-            new Vector3(-18f, 0f,  22f),
-            new Vector3(  5f, 0f, -25f),
+            new Vector3( 5f, 0f,  4f),
+            new Vector3(-6f, 0f,  5f),
+            new Vector3( 7f, 0f, -4f),
+            new Vector3(-5f, 0f, -6f),
+            new Vector3(10f, 0f,  2f),
+            new Vector3(-10f, 0f, -2f),
+            new Vector3( 3f, 0f,  9f),
+            new Vector3(-3f, 0f, -9f),
         };
 
         for (int gi = 0; gi < guardPositions.Length; gi++)
