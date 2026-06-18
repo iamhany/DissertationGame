@@ -98,6 +98,14 @@ public class ExplorationSceneManager : MonoBehaviour
         var op = SceneManager.LoadSceneAsync(SyntyDemoSceneName, LoadSceneMode.Additive);
         yield return op;
 
+        Scene demoScene = SceneManager.GetSceneByName(SyntyDemoSceneName);
+
+        if (demoScene.IsValid() && demoScene.isLoaded)
+        {
+             SceneManager.SetActiveScene(demoScene);
+            ApplyDemoLighting(demoScene);
+        }
+
         // Camera / AudioListener / AudioSource suppression already handled in OnSceneLoaded.
 
         _player = FindFirstObjectByType<FirstPersonController>();
@@ -199,6 +207,22 @@ public class ExplorationSceneManager : MonoBehaviour
                 : string.Empty;
     }
 
+    private void ApplyDemoLighting(Scene demoScene)
+    {
+        foreach (GameObject root in demoScene.GetRootGameObjects())
+        {
+            foreach (Light light in root.GetComponentsInChildren<Light>(true))
+            {
+              if (light.type == LightType.Directional)
+              {
+                   light.enabled = true;
+                  RenderSettings.sun = light;
+                  DynamicGI.UpdateEnvironment();
+                  return;
+              }
+            }
+        }
+    }
     private void OnContinueClicked()
     {
         ProphecyManager.Instance?.ApplyIntegrityDelta(5);

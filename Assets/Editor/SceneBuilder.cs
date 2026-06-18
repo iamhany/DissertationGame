@@ -467,13 +467,6 @@ public static class SceneBuilder
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         CreateEventSystem();
 
-        // ── Directional light (placeholder — Demo scene will provide its own) ──
-        var lightGO = new GameObject("Directional Light");
-        var light   = lightGO.AddComponent<Light>();
-        light.type      = LightType.Directional;
-        light.intensity = 1f;
-        lightGO.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
-
         // ── Player capsule ────────────────────────────────────────────────────
         var playerGO = new GameObject("Player");
         playerGO.tag  = "Player";
