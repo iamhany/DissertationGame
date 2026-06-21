@@ -53,6 +53,14 @@ public class UIManager : MonoBehaviour
 
     void Update()
     {
+        if (dialoguePanel != null && dialoguePanel.IsTypewriting &&
+            (UnityEngine.InputSystem.Mouse.current?.leftButton.wasPressedThisFrame == true ||
+             UnityEngine.InputSystem.Keyboard.current?.spaceKey.wasPressedThisFrame == true))
+        {
+            dialoguePanel.FinishImmediately();
+            return;
+        }
+
         // Left-click or Space skips the current slideshow hold
         if (UnityEngine.InputSystem.Mouse.current?.leftButton.wasPressedThisFrame == true ||
             UnityEngine.InputSystem.Keyboard.current?.spaceKey.wasPressedThisFrame == true)
@@ -129,9 +137,11 @@ public class UIManager : MonoBehaviour
         // dialoguePanel.SetContent(evt.title, displayText) was called above with
         // evt.text ("Do you go?") — no need to touch it again.
         SpawnChoiceButtons(evt);
+        SetChoiceButtonsInteractable(false);
 
         yield return fadeController.FadeIn();
         yield return dialoguePanel.FadeTextIn();
+        SetChoiceButtonsInteractable(true);
     }
 
     private void SpawnChoiceButtons(NarrativeEvent evt)
@@ -193,7 +203,7 @@ public class UIManager : MonoBehaviour
             }
         }
 
-        EventManager.Instance.OnChoiceMade(choice);
+        EventManager.Instance.OnChoiceMade(choice, choiceIndex);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -248,6 +258,16 @@ public class UIManager : MonoBehaviour
         foreach (var btn in _activeButtons)
             if (btn != null) Destroy(btn.gameObject);
         _activeButtons.Clear();
+    }
+
+    private void SetChoiceButtonsInteractable(bool interactable)
+    {
+        foreach (var btn in _activeButtons)
+        {
+            if (btn == null) continue;
+            var button = btn.GetComponent<UnityEngine.UI.Button>();
+            if (button != null) button.interactable = interactable;
+        }
     }
 
     private void HandleGameComplete()

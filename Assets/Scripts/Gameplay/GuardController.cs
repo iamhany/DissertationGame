@@ -85,9 +85,9 @@ public class GuardController : MonoBehaviour
     [Tooltip("Small torso correction used by the procedural fallback posture.")]
     public float proceduralTorsoCorrection = 0f;
     [Tooltip("Humanoid upper-leg muscle delta used only while moving.")]
-    public float proceduralLegStepMuscle = 0.58f;
+    public float proceduralLegStepMuscle = 0.34f;
     [Tooltip("Humanoid lower-leg bend delta used only while moving.")]
-    public float proceduralKneeStepMuscle = 0.42f;
+    public float proceduralKneeStepMuscle = 0.62f;
 
     // ── State ─────────────────────────────────────────────────────────────────
 
@@ -345,8 +345,13 @@ public class GuardController : MonoBehaviour
         {
             SetMuscle(muscles, _leftLegFrontBack, stride * proceduralLegStepMuscle);
             SetMuscle(muscles, _rightLegFrontBack, stride * -proceduralLegStepMuscle);
-            SetMuscle(muscles, _leftKneeStretch, 0.85f - leftStepBend * proceduralKneeStepMuscle);
-            SetMuscle(muscles, _rightKneeStretch, 0.85f - rightStepBend * proceduralKneeStepMuscle);
+
+            float leftForwardSwing = Mathf.Clamp01(stride);
+            float rightForwardSwing = Mathf.Clamp01(-stride);
+            float leftKneeBend = Mathf.Max(leftStepBend, leftForwardSwing * 0.9f);
+            float rightKneeBend = Mathf.Max(rightStepBend, rightForwardSwing * 0.9f);
+            SetMuscle(muscles, _leftKneeStretch, 0.95f - leftKneeBend * proceduralKneeStepMuscle);
+            SetMuscle(muscles, _rightKneeStretch, 0.95f - rightKneeBend * proceduralKneeStepMuscle);
         }
 
         SetMuscle(muscles, _spineFrontBack, proceduralTorsoCorrection);

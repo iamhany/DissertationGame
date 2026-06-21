@@ -51,6 +51,28 @@ public class SaveManager : MonoBehaviour
             antiJesus = StateManager.Instance.Crowd.antiJesus
         };
 
+        var memory = StateManager.Instance.Memory;
+        data.joinedCrowd = memory.joinedCrowd;
+        data.warnedDisciplesEarly = memory.warnedDisciplesEarly;
+        data.warnedJesusAtTemple = memory.warnedJesusAtTemple;
+        data.defendedJesusPublicly = memory.defendedJesusPublicly;
+        data.confrontedJudas = memory.confrontedJudas;
+        data.warnedJesusOfBetrayal = memory.warnedJesusOfBetrayal;
+        data.whisperWarningAtSupper = memory.whisperWarningAtSupper;
+        data.namedJudasAtTable = memory.namedJudasAtTable;
+        data.wokeTheDisciples = memory.wokeTheDisciples;
+        data.blockedTheArrest = memory.blockedTheArrest;
+        data.shoutedForJesus = memory.shoutedForJesus;
+        data.organisedResistance = memory.organisedResistance;
+        data.lastChoiceEventId = memory.lastChoiceEventId;
+        data.lastChoiceKey = memory.lastChoiceKey;
+        data.lastChoiceWasSecondOption = memory.lastChoiceWasSecondOption;
+        data.lastChoiceWasBoldestOption = memory.lastChoiceWasBoldestOption;
+        data.hasChosenSecondOption = memory.hasChosenSecondOption;
+        data.secondOptionChoiceCountSinceBoldest = memory.secondOptionChoiceCountSinceBoldest;
+        data.boldestOptionChoiceCount = memory.boldestOptionChoiceCount;
+        data.escapeScenePlayed = memory.escapeScenePlayed;
+
         try
         {
             File.WriteAllText(SavePath, JsonUtility.ToJson(data, true));
@@ -92,6 +114,28 @@ public class SaveManager : MonoBehaviour
         StateManager.Instance.Crowd.proJesus  = data.proJesus;
         StateManager.Instance.Crowd.neutral   = data.neutral;
         StateManager.Instance.Crowd.antiJesus = data.antiJesus;
+
+        var memory = StateManager.Instance.Memory;
+        memory.joinedCrowd = data.joinedCrowd;
+        memory.warnedDisciplesEarly = data.warnedDisciplesEarly;
+        memory.warnedJesusAtTemple = data.warnedJesusAtTemple;
+        memory.defendedJesusPublicly = data.defendedJesusPublicly;
+        memory.confrontedJudas = data.confrontedJudas;
+        memory.warnedJesusOfBetrayal = data.warnedJesusOfBetrayal;
+        memory.whisperWarningAtSupper = data.whisperWarningAtSupper;
+        memory.namedJudasAtTable = data.namedJudasAtTable;
+        memory.wokeTheDisciples = data.wokeTheDisciples;
+        memory.blockedTheArrest = data.blockedTheArrest;
+        memory.shoutedForJesus = data.shoutedForJesus;
+        memory.organisedResistance = data.organisedResistance;
+        memory.lastChoiceEventId = data.lastChoiceEventId;
+        memory.lastChoiceKey = data.lastChoiceKey;
+        memory.lastChoiceWasSecondOption = data.lastChoiceWasSecondOption;
+        memory.lastChoiceWasBoldestOption = data.lastChoiceWasBoldestOption;
+        memory.hasChosenSecondOption = data.hasChosenSecondOption;
+        memory.secondOptionChoiceCountSinceBoldest = data.secondOptionChoiceCountSinceBoldest;
+        memory.boldestOptionChoiceCount = data.boldestOptionChoiceCount;
+        memory.escapeScenePlayed = data.escapeScenePlayed;
     }
 
     public void ClearSave()

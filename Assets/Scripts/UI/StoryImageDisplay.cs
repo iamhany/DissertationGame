@@ -18,8 +18,9 @@ public class StoryImageDisplay : MonoBehaviour
     void Awake()
     {
         _image = GetComponent<Image>();
-        // Start solid black — background stays opaque until a sprite is assigned.
-        _image.color = Color.black;
+        ApplyImageSettings();
+        // Start solid black until a sprite is assigned, but preserve pre-wired sprites.
+        _image.color = _image.sprite != null ? Color.white : Color.black;
     }
 
     /// <summary>
@@ -28,6 +29,7 @@ public class StoryImageDisplay : MonoBehaviour
     /// </summary>
     public void SetImmediate(Sprite sprite)
     {
+        ApplyImageSettings();
         _image.sprite = sprite;
         _image.color  = sprite != null ? Color.white : Color.black;
     }
@@ -35,6 +37,7 @@ public class StoryImageDisplay : MonoBehaviour
     /// <summary>Clears back to solid black immediately.</summary>
     public void Clear()
     {
+        ApplyImageSettings();
         _image.sprite = null;
         _image.color  = Color.black;
     }
@@ -49,6 +52,7 @@ public class StoryImageDisplay : MonoBehaviour
         if (_image.sprite != null && _image.color.a > 0.05f)
             yield return FadeAlpha(1f, 0f);
 
+        ApplyImageSettings();
         _image.sprite = sprite;
         _image.color  = new Color(1f, 1f, 1f, 0f);
 
@@ -69,5 +73,10 @@ public class StoryImageDisplay : MonoBehaviour
         }
         c.a          = to;
         _image.color = c;
+    }
+
+    private void ApplyImageSettings()
+    {
+        _image.preserveAspect = true;
     }
 }

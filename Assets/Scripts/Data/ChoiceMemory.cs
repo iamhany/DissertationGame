@@ -8,6 +8,28 @@ using System;
 [Serializable]
 public class ChoiceMemory
 {
+    public const string JoinCrowd = "join_crowd";
+    public const string WarnDisciplesEarly = "warn_disciples_early";
+    public const string WarnJesusAtTemple = "warn_jesus_at_temple";
+    public const string DefendJesusPublicly = "defend_jesus_publicly";
+    public const string ConfrontJudas = "confront_judas";
+    public const string WarnJesusOfBetrayal = "warn_jesus_of_betrayal";
+    public const string WhisperWarningAtSupper = "whisper_warning_at_supper";
+    public const string NameJudasAtTable = "name_judas_at_table";
+    public const string WakeDisciples = "wake_disciples";
+    public const string BlockArrest = "block_arrest";
+    public const string ShoutForJesus = "shout_for_jesus";
+    public const string OrganiseResistance = "organise_resistance";
+
+    public string lastChoiceEventId;
+    public string lastChoiceKey;
+    public bool lastChoiceWasSecondOption;
+    public bool lastChoiceWasBoldestOption;
+    public bool hasChosenSecondOption;
+    public int secondOptionChoiceCountSinceBoldest;
+    public int boldestOptionChoiceCount;
+    public bool escapeScenePlayed;
+
     // ── event_1 choices ──────────────────────────────────────────────────────
     public bool joinedCrowd;           // cheered during Palm Sunday entry
     public bool warnedDisciplesEarly;  // spoke to disciples at the entry
@@ -37,7 +59,18 @@ public class ChoiceMemory
     /// <summary>Player made at least one public stand that would mark them as a
     /// defender of Jesus — historically a capital offence.</summary>
     public bool MadePublicDefence =>
-        defendedJesusPublicly || namedJudasAtTable || blockedTheArrest || organisedResistance;
+        defendedJesusPublicly || blockedTheArrest || shoutedForJesus || organisedResistance;
+
+    public bool LastChoiceWasPublicDefence =>
+        lastChoiceKey == DefendJesusPublicly ||
+        lastChoiceKey == BlockArrest ||
+        lastChoiceKey == ShoutForJesus ||
+        lastChoiceKey == OrganiseResistance;
+
+    public bool ShouldEscapeAfterLastChoice =>
+        (lastChoiceWasSecondOption && secondOptionChoiceCountSinceBoldest >= 2) ||
+        (lastChoiceWasBoldestOption &&
+            (LastChoiceWasPublicDefence || hasChosenSecondOption || boldestOptionChoiceCount > 1));
 
     /// <summary>Player actively tried to interfere with Judas specifically.</summary>
     public bool TriedToStopJudas => confrontedJudas || warnedJesusOfBetrayal || blockedTheArrest;
@@ -70,5 +103,13 @@ public class ChoiceMemory
         defendedJesusPublicly = confrontedJudas = warnedJesusOfBetrayal =
         whisperWarningAtSupper = namedJudasAtTable = wokeTheDisciples =
         blockedTheArrest = shoutedForJesus = organisedResistance = false;
+        lastChoiceEventId = null;
+        lastChoiceKey = null;
+        lastChoiceWasSecondOption = false;
+        lastChoiceWasBoldestOption = false;
+        hasChosenSecondOption = false;
+        secondOptionChoiceCountSinceBoldest = 0;
+        boldestOptionChoiceCount = 0;
+        escapeScenePlayed = false;
     }
 }

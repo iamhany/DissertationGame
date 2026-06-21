@@ -53,12 +53,12 @@ public class NarrativeManager : MonoBehaviour
 
     private string AddDistortedFrame(string text)
     {
-        return text + "\n\n[The record shifts. Your presence is felt but not yet named.]";
+        return text;
     }
 
     private string AddParadoxFrame(string text)
     {
-        return text + "\n\n[History strains against your intervention. Something in the account must give.]";
+        return text;
     }
 
     // ── Choice-memory consequences ────────────────────────────────────────────
@@ -72,52 +72,50 @@ public class NarrativeManager : MonoBehaviour
         {
             case "event_2":
                 // Consequences of what the player did at the Entry
-                if (mem.warnedDisciplesEarly)
-                    return "One of the disciples you spoke to earlier glances at you with recognition across the Temple courtyard. He nods — barely. He has not forgotten what you told him.";
-                if (mem.joinedCrowd)
-                    return "A Pharisee near the colonnade is staring at you. You were too visible at the gates. He is trying to place your face.";
+                if (WasLast(mem, "event_1", ChoiceMemory.WarnDisciplesEarly))
+                    return Consequence("Remember that you warned a disciple before entering the city. As the Pharisees watch Jesus now, that warning has already made you part of this week's danger.");
+                if (WasLast(mem, "event_1", ChoiceMemory.JoinCrowd))
+                    return Consequence("Remember that you cheered openly at the gates. As you decide what to do in the Temple, some hostile eyes may already recognise your face.");
                 return null;
 
             case "event_3":
                 // Consequences of Temple Conflict choices
-                if (mem.defendedJesusPublicly)
-                    return "The scribes who were documenting the incident have scattered — but one of them saw your face when you confronted them. You are now part of the record.\n\nThis is not a time in history when speaking against the authorities is a protected right. It is a death sentence waiting to be signed.";
-                if (mem.warnedJesusAtTemple)
-                    return "Jesus paused when you approached him. He looked at you with unsettling calm, as though your warning was not a surprise to him — but that you, specifically, had given it, was.";
+                if (WasLast(mem, "event_2", ChoiceMemory.DefendJesusPublicly))
+                    return Consequence("Remember that you defended Jesus publicly before the Pharisees. As Judas meets the officials, you are no longer just a witness to the case forming against him.");
+                if (WasLast(mem, "event_2", ChoiceMemory.WarnJesusAtTemple))
+                    return Consequence("Remember that you warned Jesus about the Pharisees watching him. As you see Judas make his agreement, you have to choose whether to intervene again.");
                 return null;
 
             case "event_4":
                 // Consequences of Betrayal Formation choices
-                if (mem.confrontedJudas)
-                    return "Judas is at the table. His eyes find you the moment you enter the room. He knows you saw him. His jaw tightens. He does not speak, but his hand moves toward the edge of the table — and you notice he is sitting closest to the door.\n\nHe will report you to the Temple officials. It is only a matter of time.";
-                if (mem.warnedJesusOfBetrayal)
-                    return "When Jesus says 'one of you will betray me,' there is a half-second — just one — where his eyes are on you before he sweeps the room. He already knew. You confirmed it. You are now woven into this moment in a way no historian will be able to explain.";
+                if (WasLast(mem, "event_3", ChoiceMemory.ConfrontJudas))
+                    return Consequence("Remember that you confronted Judas when you saw the betrayal being arranged. At this table, he knows you know, and anything you say now will land in front of everyone.");
+                if (WasLast(mem, "event_3", ChoiceMemory.WarnJesusOfBetrayal))
+                    return Consequence("Remember that you ran to warn Jesus about Judas. When betrayal is named at the table, your earlier warning hangs over the room.");
                 return null;
 
             case "event_5":
                 // Consequences of Last Supper choices
-                if (mem.namedJudasAtTable)
-                    return "The disciples are rattled. Some believe you. Some think you're an infiltrator. Either way, the room erupted when you named Judas — and three people saw your face clearly in the lamplight before you were pushed aside.\n\nThose three faces are in the crowd outside the garden right now. The Temple guards have been told to watch for a stranger.";
-                if (mem.whisperWarningAtSupper)
-                    return "Jesus's expression did not change when you whispered to him. He thanked you in Aramaic — quietly, so only you could hear. Then he continued breaking bread as if nothing had changed.\n\nBut Judas saw you lean in. And Judas is now at the front of the guard column approaching through the trees.";
-                if (mem.confrontedJudas)
-                    return "Judas walks faster than the others. He has something to prove tonight. The confrontation with you earlier stoked something cold in him — a need to complete this, to make it irreversible.\n\nHe has also told the guards to look for a stranger who was interfering.";
+                if (WasLast(mem, "event_4", ChoiceMemory.NameJudasAtTable))
+                    return Consequence("Remember that you named Judas in front of the whole table. Now, in the garden, the damage from that public accusation arrives with him.");
+                if (WasLast(mem, "event_4", ChoiceMemory.WhisperWarningAtSupper))
+                    return Consequence("Remember that you whispered your warning to Jesus at supper. Judas saw you lean close, and now he is walking toward you with the guards.");
                 return null;
 
             case "event_6":
                 // Consequences of Garden choices
-                if (mem.blockedTheArrest)
-                    return "The guards remember you. One of them — the senior officer — points you out to another before the trial begins. You have drawn the attention of the high priest's household. In Jerusalem in 30 AD, that is not the kind of attention you survive by standing still.\n\nThe walls of the city are being watched. Someone has your description.";
-                if (mem.wokeTheDisciples)
-                    return "Two of the disciples are still in the city. Peter cut off a guard's ear in the chaos — and fled. The Temple officials are now looking for anyone connected to the disturbance. You were seen near the garden.";
+                if (WasLast(mem, "event_5", ChoiceMemory.BlockArrest))
+                    return Consequence("Remember that you stepped between Judas and Jesus during the arrest. As the trial begins, the authorities already have reason to watch you.");
+                if (WasLast(mem, "event_5", ChoiceMemory.WakeDisciples))
+                    return Consequence("Remember that your warning woke the disciples and turned the arrest into chaos. In this crowd before Pilate, being seen again could matter.");
                 return null;
 
             case "event_7":
-                // Consequences cascade into the final scene
-                if (mem.MadePublicDefence)
-                    return "Somewhere behind you in the crowd, a Temple guard is moving. He was at the trial. He was at the garden. He has seen your face too many times now.\n\nYou did not come here to die. But you chose, again and again, to be visible.";
-                if (mem.TriedToStopJudas)
-                    return "You tried to stop the betrayal. You stood in its way. And still — the cross is here. History did not need Judas to be willing. It only needed the outcome to occur. Another hand would have done it. The prophecy was not about one man's weakness. It was about a world that was always going to do this.";
+                // Consequences of Trial Before Pilate choices
+                if (WasLast(mem, "event_6", ChoiceMemory.OrganiseResistance))
+                    return Consequence("Remember that you tried to organise resistance in Pilate's courtyard. At the cross, the people you moved are scattered, and your choice now is what to do with the failure.");
+                if (WasLast(mem, "event_6", ChoiceMemory.ShoutForJesus))
+                    return Consequence("Remember that you shouted for Jesus to be released. At the cross, that cry has not vanished, but it did not stop this moment.");
                 return null;
 
             default:
@@ -131,5 +129,15 @@ public class NarrativeManager : MonoBehaviour
     {
         string playerName = GameManager.Instance?.PlayerProfile?.playerName ?? "Witness";
         return text.Replace("{playerName}", playerName);
+    }
+
+    private bool WasLast(ChoiceMemory memory, string eventId, string choiceKey)
+    {
+        return memory.lastChoiceEventId == eventId && memory.lastChoiceKey == choiceKey;
+    }
+
+    private string Consequence(string text)
+    {
+        return "<i>" + text + "</i>";
     }
 }

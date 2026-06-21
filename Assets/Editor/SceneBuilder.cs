@@ -17,6 +17,7 @@ using UnityEngine.UI;
 public static class SceneBuilder
 {
     private const int UniversalRenderer3DIndex = 1;
+    private static readonly Vector2 FullHdResolution = new Vector2(1920f, 1080f);
 
     private const string PrefabDir    = "Assets/Prefabs";
     private const string PrefabPath   = "Assets/Prefabs/ChoiceButton.prefab";
@@ -115,6 +116,7 @@ public static class SceneBuilder
         var bg = CreatePanel("Background", canvas.transform, Color.white);
         SetFill(bg);
         var bgImg = bg.GetComponent<Image>();
+        bgImg.preserveAspect = true;
         var mainMenuSprite = AssetDatabase.LoadAssetAtPath<Sprite>(
             "Assets/Images/StoryImages/mainmenu/mainmenu.png");
         if (mainMenuSprite != null)
@@ -246,7 +248,9 @@ public static class SceneBuilder
 
         // Background
         var bg = CreatePanel("Background", canvas.transform, Color.black);
-        SetFill(bg);        var storyBg = bg.AddComponent<StoryImageDisplay>();
+        SetFill(bg);
+        bg.GetComponent<Image>().preserveAspect = true;
+        var storyBg = bg.AddComponent<StoryImageDisplay>();
         // ── Subtitle Panel (slideshow captions, auto-height, bottom-anchored) ─────
         var subtitlePanelGO = new GameObject("SubtitlePanel");
         subtitlePanelGO.transform.SetParent(canvas.transform, false);
@@ -357,6 +361,7 @@ public static class SceneBuilder
         // Background
         var bg = CreatePanel("Background", canvas.transform, Color.black);
         SetFill(bg);
+        bg.GetComponent<Image>().preserveAspect = true;
         var endingStoryBg = bg.AddComponent<StoryImageDisplay>();
 
         // ── Title ─────────────────────────────────────────────────────────────
@@ -392,6 +397,47 @@ public static class SceneBuilder
         bodyTMP.textWrappingMode   = TextWrappingModes.Normal;
         bodyTMP.overflowMode       = TextOverflowModes.Overflow;
         bodyPanelGO.SetActive(false);
+
+        // ── Subtitle Panel (ending narration, bottom-anchored) ───────────────
+        var subtitlePanelGO = new GameObject("EndingSubtitlePanel");
+        subtitlePanelGO.transform.SetParent(canvas.transform, false);
+        subtitlePanelGO.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.72f);
+        var subtitleRT = subtitlePanelGO.GetComponent<RectTransform>();
+        subtitleRT.anchorMin        = new Vector2(0.05f, 0f);
+        subtitleRT.anchorMax        = new Vector2(0.95f, 0f);
+        subtitleRT.pivot            = new Vector2(0.5f, 0f);
+        subtitleRT.anchoredPosition = new Vector2(0f, 24f);
+        subtitleRT.sizeDelta        = new Vector2(0f, 0f);
+        var subtitleCSF = subtitlePanelGO.AddComponent<ContentSizeFitter>();
+        subtitleCSF.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        subtitleCSF.verticalFit   = ContentSizeFitter.FitMode.PreferredSize;
+        var subtitleVLG = subtitlePanelGO.AddComponent<VerticalLayoutGroup>();
+        subtitleVLG.padding                = new RectOffset(20, 20, 12, 12);
+        subtitleVLG.childControlWidth      = true;
+        subtitleVLG.childControlHeight     = true;
+        subtitleVLG.childForceExpandWidth  = true;
+        subtitleVLG.childForceExpandHeight = false;
+        var subtitleTextGO = CreateTMP("EndingSubtitleText", subtitlePanelGO.transform,
+            "", 20, TextAlignmentOptions.Center, Color.white);
+        var subtitleTMP = subtitleTextGO.GetComponent<TextMeshProUGUI>();
+        subtitleTMP.textWrappingMode = TextWrappingModes.Normal;
+        subtitleTMP.overflowMode     = TextOverflowModes.Overflow;
+        subtitlePanelGO.SetActive(false);
+
+        // ── Paradox Bible verse overlay (text sits over ending_3's right Bible page) ──
+        var bibleVerseGO = CreateTMP("BibleVerseOverlay", canvas.transform,
+            "", 18, TextAlignmentOptions.Justified, new Color(0.18f, 0.10f, 0.04f, 0.92f));
+        SetAnchors(bibleVerseGO.GetComponent<RectTransform>(),
+            new Vector2(0.525f, 0.36f), new Vector2(0.665f, 0.61f));
+        var bibleVerseTMP = bibleVerseGO.GetComponent<TextMeshProUGUI>();
+        bibleVerseTMP.enableAutoSizing = true;
+        bibleVerseTMP.fontSizeMin      = 9f;
+        bibleVerseTMP.fontSizeMax      = 22f;
+        bibleVerseTMP.textWrappingMode = TextWrappingModes.Normal;
+        bibleVerseTMP.overflowMode     = TextOverflowModes.Overflow;
+        bibleVerseTMP.richText         = true;
+        bibleVerseTMP.raycastTarget    = false;
+        bibleVerseGO.SetActive(false);
 
         // ── Belief Choice Panel ───────────────────────────────────────────────
         var beliefPanelGO = CreatePanel("BeliefChoicePanel", canvas.transform,
@@ -453,6 +499,10 @@ public static class SceneBuilder
         ctrl.rationalButton     = rationalBtn;
         ctrl.rationalButtonLabel = rationalLabelTMP;
         ctrl.choiceResultText   = choiceResultGO.GetComponent<TextMeshProUGUI>();
+        ctrl.subtitlePanel      = subtitlePanelGO;
+        ctrl.subtitleText       = subtitleTMP;
+        ctrl.bibleVersePanel    = bibleVerseGO;
+        ctrl.bibleVerseText     = bibleVerseTMP;
         ctrl.exitMenuPanel      = exitMenuGO;
         ctrl.exitQuestionText   = exitQuestionGO.GetComponent<TextMeshProUGUI>();
         ctrl.restartButton      = restartBtn;
@@ -675,7 +725,7 @@ public static class SceneBuilder
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         var scaler = go.AddComponent<CanvasScaler>();
         scaler.uiScaleMode         = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920, 1080);
+        scaler.referenceResolution = FullHdResolution;
         scaler.matchWidthOrHeight  = 0.5f;
         go.AddComponent<GraphicRaycaster>();
         return canvas;

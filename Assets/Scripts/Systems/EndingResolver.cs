@@ -65,40 +65,71 @@ public static class EndingResolver
     {
         return type switch
         {
-            EndingType.Canon =>
+            EndingType.Canon => GetCanonText(),
+
+            EndingType.DistortedWitness => GetDistortedWitnessText(),
+
+            EndingType.Paradox =>
+                GetParadoxPresentText() + "\n\n" +
+                GetParadoxVerseDiscoveryText() + "\n\n" +
+                GetParadoxVerseText(playerName) + "\n\n" +
+                GetParadoxClosingText(),
+
+            _ => string.Empty
+        };
+    }
+
+    public static string GetCanonText()
+    {
+        return
                 "You are pulled back to your own time.\n\n" +
                 "The temporal device goes dark. Your room is exactly as you left it. " +
                 "You witnessed history unfold — the entry, the supper, the arrest, the cross. " +
                 "Everything happened as every account said it did. " +
                 "You intervened very little. You mostly watched.\n\n" +
-                "You came to resolve your doubt. It is time to decide whether you have.",
+                "You came to resolve your doubt. It is time to decide whether you have.";
+    }
 
-            EndingType.DistortedWitness =>
+    public static string GetDistortedWitnessText()
+    {
+        return
                 "You are thrown back to the present with memories that should not be possible.\n\n" +
                 "You warned him. You argued. You called out in the crowd. " +
                 "Yet the betrayal still came, the trial still happened, and the cross still rose. " +
                 "History would not bend — but you were inside it, and you felt every moment as real.\n\n" +
                 "You came looking for certainty. You saw enough to form one. " +
-                "Now you must decide what those events actually mean to you.",
+                "Now you must decide what those events actually mean to you.";
+    }
 
-            EndingType.Paradox =>
+    public static string GetParadoxPresentText()
+    {
+        return
                 "You are thrown back to the present.\n\n" +
                 "Your hands are trembling. A Bible lies open on the table in front of you — " +
                 "the same one you left there before the jump.\n\n" +
-                "You do not remember leaving it open.\n\n" +
+                "You do not remember leaving it open.";
+    }
+
+    public static string GetParadoxVerseDiscoveryText()
+    {
+        return
                 "You read the verse on the page. You read it again. " +
-                "Your mouth goes dry.\n\n" +
-                "The passage lists the disciples of Jesus. You count them.\n\n" +
-                "Thirteen.\n\n" +
+                "Your mouth goes dry.";
+    }
+
+    public static string GetParadoxVerseText(string playerName)
+    {
+        return
                 "Matthew 10\n" +
                 "2 These are the names of the thirteen apostles: first, Simon (who is called Peter) and his brother Andrew; James son of Zebedee, and his brother John;\n" +
                 "3 Philip and Bartholomew; Thomas and Matthew the tax collector; James son of Alphaeus, and Thaddaeus;\n" +
                 "4 Simon the Zealot, Judas Iscariot, who betrayed him;\n" +
-                $"5 And {playerName}, the most loyal one, who tried to change the prophecy with outmost courage.\n\n" +
-                "History did not erase you. It wrote you in.",
+                $"5 And <b>{playerName}</b>, the most loyal one, who tried to change the prophecy with outmost courage.";
+    }
 
-            _ => string.Empty
-        };
+    public static string GetParadoxClosingText()
+    {
+        return "History did not erase you. It wrote you in.";
     }
 
     /// <summary>

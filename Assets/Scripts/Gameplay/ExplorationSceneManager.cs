@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -185,6 +186,9 @@ public class ExplorationSceneManager : MonoBehaviour
         UpdateRearGuardSoundIndicator();
 
         if (_sceneDone) return;
+
+        if (Keyboard.current?.qKey.wasPressedThisFrame == true)
+            TriggerSuccess("Level skipped.\nReturn to the story?");
     }
 
     // ── Public callbacks ──────────────────────────────────────────────────────

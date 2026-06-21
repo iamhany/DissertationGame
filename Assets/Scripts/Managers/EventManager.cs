@@ -58,6 +58,11 @@ public class EventManager : MonoBehaviour
 
     public void OnChoiceMade(EventChoice choice)
     {
+        OnChoiceMade(choice, -1);
+    }
+
+    public void OnChoiceMade(EventChoice choice, int choiceIndex)
+    {
         if (choice?.effects != null)
         {
             ProphecyManager.Instance.ApplyIntegrityDelta(choice.effects.prophecyIntegrity);
@@ -65,7 +70,7 @@ public class EventManager : MonoBehaviour
         }
 
         // Record memorable choices into ChoiceMemory
-        RecordChoiceMemory(choice);
+        RecordChoiceMemory(choice, choiceIndex);
 
         _currentIndex++;
 
@@ -76,29 +81,24 @@ public class EventManager : MonoBehaviour
             return;
         }
 
-        SaveManager.Instance?.Save();
-
-        // Check whether this advance should launch a gameplay scene instead
-        if (ShouldLoadExplorationScene())
-        {
-            ResumeIndex = _currentIndex;
-            GameManager.Instance.LoadExplorationScene();
-            return;
-        }
-
         if (ShouldLoadEscapeScene())
         {
+            StateManager.Instance.Memory.escapeScenePlayed = true;
+            if (StateManager.Instance.Memory.lastChoiceWasSecondOption)
+                StateManager.Instance.Memory.secondOptionChoiceCountSinceBoldest = 0;
+            SaveManager.Instance?.Save();
             ResumeIndex = _currentIndex;
             GameManager.Instance.LoadExplorationScene();
             return;
         }
 
+        SaveManager.Instance?.Save();
         LoadEvent(_eventSequence[_currentIndex]);
     }
 
     // ── Choice memory recording ───────────────────────────────────────────────
 
-    private void RecordChoiceMemory(EventChoice choice)
+    private void RecordChoiceMemory(EventChoice choice, int choiceIndex)
     {
         if (choice == null) return;
         var mem = StateManager.Instance?.Memory;
@@ -107,56 +107,56 @@ public class EventManager : MonoBehaviour
         // We identify choices by their text content so no IDs need adding to JSON
         string t = choice.text ?? "";
 
+        mem.lastChoiceEventId = _currentEvent?.id;
+        mem.lastChoiceKey = null;
+        mem.lastChoiceWasSecondOption = choiceIndex == 1;
+        mem.lastChoiceWasBoldestOption = choiceIndex == 2;
+        if (mem.lastChoiceWasSecondOption)
+        {
+            mem.hasChosenSecondOption = true;
+            mem.secondOptionChoiceCountSinceBoldest++;
+        }
+        if (mem.lastChoiceWasBoldestOption)
+        {
+            mem.boldestOptionChoiceCount++;
+            mem.secondOptionChoiceCountSinceBoldest = 0;
+        }
+
         // event_1
-        if (t.Contains("clapping and cheering"))             mem.joinedCrowd = true;
-        if (t.Contains("speak to one of the disciples"))     mem.warnedDisciplesEarly = true;
+        if (t.Contains("clapping and cheering"))             { mem.joinedCrowd = true; mem.lastChoiceKey = ChoiceMemory.JoinCrowd; }
+        if (t.Contains("speak to one of the disciples"))     { mem.warnedDisciplesEarly = true; mem.lastChoiceKey = ChoiceMemory.WarnDisciplesEarly; }
 
         // event_2
-        if (t.Contains("warn Jesus that the Pharisees"))     mem.warnedJesusAtTemple = true;
-        if (t.Contains("Approach the Pharisees yourself"))   mem.defendedJesusPublicly = true;
+        if (t.Contains("warn Jesus that the Pharisees"))     { mem.warnedJesusAtTemple = true; mem.lastChoiceKey = ChoiceMemory.WarnJesusAtTemple; }
+        if (t.Contains("Approach the Pharisees yourself"))   { mem.defendedJesusPublicly = true; mem.lastChoiceKey = ChoiceMemory.DefendJesusPublicly; }
 
         // event_3
-        if (t.Contains("Confront Judas directly"))           mem.confrontedJudas = true;
-        if (t.Contains("Run to warn Jesus"))                 mem.warnedJesusOfBetrayal = true;
+        if (t.Contains("Confront Judas directly"))           { mem.confrontedJudas = true; mem.lastChoiceKey = ChoiceMemory.ConfrontJudas; }
+        if (t.Contains("Run to warn Jesus"))                 { mem.warnedJesusOfBetrayal = true; mem.lastChoiceKey = ChoiceMemory.WarnJesusOfBetrayal; }
 
         // event_4
-        if (t.Contains("Quietly tell Jesus"))                mem.whisperWarningAtSupper = true;
-        if (t.Contains("Speak out to the whole table"))      mem.namedJudasAtTable = true;
+        if (t.Contains("Quietly tell Jesus"))                { mem.whisperWarningAtSupper = true; mem.lastChoiceKey = ChoiceMemory.WhisperWarningAtSupper; }
+        if (t.Contains("Speak out to the whole table"))      { mem.namedJudasAtTable = true; mem.lastChoiceKey = ChoiceMemory.NameJudasAtTable; }
 
         // event_5
-        if (t.Contains("Wake the disciples"))                mem.wokeTheDisciples = true;
-        if (t.Contains("Step between Judas"))                mem.blockedTheArrest = true;
+        if (t.Contains("Wake the disciples"))                { mem.wokeTheDisciples = true; mem.lastChoiceKey = ChoiceMemory.WakeDisciples; }
+        if (t.Contains("Step between Judas"))                { mem.blockedTheArrest = true; mem.lastChoiceKey = ChoiceMemory.BlockArrest; }
 
         // event_6
-        if (t.Contains("Shout 'Release Jesus!'"))            mem.shoutedForJesus = true;
-        if (t.Contains("Move through the crowd"))            mem.organisedResistance = true;
+        if (t.Contains("Shout 'Release Jesus!'"))            { mem.shoutedForJesus = true; mem.lastChoiceKey = ChoiceMemory.ShoutForJesus; }
+        if (t.Contains("Move through the crowd"))            { mem.organisedResistance = true; mem.lastChoiceKey = ChoiceMemory.OrganiseResistance; }
     }
 
     // ── Gameplay scene routing ────────────────────────────────────────────────
 
     /// <summary>
-    /// Load the exploration scene before the Garden of Gethsemane (event_5)
-    /// when the player has already tried to interfere with Judas.
-    /// </summary>
-    private bool ShouldLoadExplorationScene()
-    {
-        if (_currentIndex != 5) return false;  // only gate event_5
-        var mem = StateManager.Instance?.Memory;
-        if (mem == null) return false;
-        // If the player confronted Judas or warned Jesus about him, the
-        // Temple guards have been told to watch for a suspicious outsider.
-        return mem.confrontedJudas || mem.warnedJesusOfBetrayal || mem.namedJudasAtTable;
-    }
-
-    /// <summary>
-    /// Load the exploration scene before Trial Before Pilate (event_6)
-    /// when the player made a public defence of Jesus that would be remembered.
+    /// Load the guard escape scene for option 3 choices after the first bold
+    /// intervention. A very public defence can trigger it immediately.
     /// </summary>
     private bool ShouldLoadEscapeScene()
     {
-        if (_currentIndex != 6) return false;  // only gate event_6
         var mem = StateManager.Instance?.Memory;
         if (mem == null) return false;
-        return mem.MadePublicDefence;
+        return mem.ShouldEscapeAfterLastChoice;
     }
 }

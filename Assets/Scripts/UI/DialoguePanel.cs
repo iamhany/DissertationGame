@@ -15,6 +15,10 @@ public class DialoguePanel : MonoBehaviour
 
     private CanvasGroup _canvasGroup;
     private bool         _cancelTypewrite;
+    private bool         _isTypewriting;
+    private RectTransform _rectTransform;
+
+    public bool IsTypewriting => _isTypewriting;
 
     void Awake()
     {
@@ -22,30 +26,32 @@ public class DialoguePanel : MonoBehaviour
         if (_canvasGroup == null)
             _canvasGroup = gameObject.AddComponent<CanvasGroup>();
 
+        _rectTransform = GetComponent<RectTransform>();
+
         // Title is never shown
         if (titleText != null) titleText.gameObject.SetActive(false);
     }
 
     /// <summary>
     /// Sets text content without animation (called while screen is blacked out).
-    /// Pre-loads the full text (invisible) so ContentSizeFitter can measure the
-    /// final box size before any characters are revealed.
+    /// Starts with an empty body so the ContentSizeFitter can grow the box as
+    /// the typewriter reveals text.
     /// </summary>
     public void SetContent(string title, string body)
     {
         _cancelTypewrite = true;   // stop any in-progress Typewrite immediately
+        _isTypewriting = false;
         _fullBody = body ?? string.Empty;
 
         if (narrativeText != null)
         {
-            narrativeText.text                 = _fullBody;
-            narrativeText.maxVisibleCharacters = 0;
+            narrativeText.text                 = string.Empty;
+            narrativeText.maxVisibleCharacters = int.MaxValue;
         }
 
         _canvasGroup.alpha = 0f;
 
-        LayoutRebuilder.ForceRebuildLayoutImmediate(
-            GetComponent<RectTransform>());
+        RebuildLayout();
     }
 
     private string _fullBody = string.Empty;
@@ -60,7 +66,7 @@ public class DialoguePanel : MonoBehaviour
 
     /// <summary>
     /// Makes the panel visible then reveals text character-by-character.
-    /// Box size is already correct from SetContent, so it never resizes during typing.
+    /// The panel grows as the visible text grows.
     /// </summary>
     public IEnumerator FadeTextIn()
     {
@@ -77,27 +83,38 @@ public class DialoguePanel : MonoBehaviour
     {
         if (narrativeText == null) yield break;
 
-        narrativeText.text                 = text;
-        narrativeText.maxVisibleCharacters = 0;
+        narrativeText.text                 = string.Empty;
+        narrativeText.maxVisibleCharacters = int.MaxValue;
+        RebuildLayout();
 
         if (string.IsNullOrEmpty(text)) yield break;
 
         _cancelTypewrite = false;
+        _isTypewriting = true;
         float delay = charsPerSecond > 0f ? 1f / charsPerSecond : 0f;
-        int total   = narrativeText.textInfo?.characterCount ?? text.Length;
 
-        for (int i = 1; i <= total; i++)
+        for (int i = 1; i <= text.Length; i++)
         {
             if (_cancelTypewrite)
             {
-                narrativeText.maxVisibleCharacters = int.MaxValue;
+                narrativeText.text = text;
+                RebuildLayout();
+                _isTypewriting = false;
                 yield break;
             }
-            narrativeText.maxVisibleCharacters = i;
-            yield return new WaitForSeconds(delay);
+
+            narrativeText.text = text.Substring(0, i);
+            RebuildLayout();
+
+            if (delay > 0f)
+                yield return new WaitForSeconds(delay);
+            else
+                yield return null;
         }
 
-        narrativeText.maxVisibleCharacters = int.MaxValue;
+        narrativeText.text = text;
+        RebuildLayout();
+        _isTypewriting = false;
     }
 
     /// <summary>
@@ -108,6 +125,18 @@ public class DialoguePanel : MonoBehaviour
     {
         _cancelTypewrite = true;
         if (narrativeText != null)
+        {
+            narrativeText.text = _fullBody;
             narrativeText.maxVisibleCharacters = int.MaxValue;
+            RebuildLayout();
+        }
+        _isTypewriting = false;
+    }
+
+    private void RebuildLayout()
+    {
+        if (_rectTransform == null) return;
+        Canvas.ForceUpdateCanvases();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(_rectTransform);
     }
 }

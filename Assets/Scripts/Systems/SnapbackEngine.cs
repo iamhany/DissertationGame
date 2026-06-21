@@ -57,16 +57,16 @@ public static class SnapbackEngine
     private static string BuildSubstitutionText(NarrativeEvent evt, string substitute)
     {
         return $"{evt.text}\n\n" +
-               $"[Your intervention was felt — but the prophecy found another way. " +
+               $"<i>Your intervention was felt — but the prophecy found another way. " +
                $"The role once held by Judas was now carried out by {substitute}. " +
-               $"The outcome remained the same.]";
+               $"The outcome remained the same.</i>";
     }
 
     private static string BuildAbsorptionText(NarrativeEvent evt)
     {
         return $"{evt.text}\n\n" +
-               "[The timeline strains under the weight of your presence. " +
+               "<i>The timeline strains under the weight of your presence. " +
                "You have pushed against prophecy so forcefully that history " +
-               "can no longer ignore you. It will find a way to account for you.]";
+               "can no longer ignore you. It will find a way to account for you.</i>";
     }
 }
