@@ -84,6 +84,10 @@ public class GuardController : MonoBehaviour
     public Animator guardAnimator;
     [Tooltip("Small torso correction used by the procedural fallback posture.")]
     public float proceduralTorsoCorrection = 0f;
+    [Tooltip("Humanoid upper-leg muscle delta used only while moving.")]
+    public float proceduralLegStepMuscle = 0.58f;
+    [Tooltip("Humanoid lower-leg bend delta used only while moving.")]
+    public float proceduralKneeStepMuscle = 0.42f;
 
     // ── State ─────────────────────────────────────────────────────────────────
 
@@ -127,6 +131,10 @@ public class GuardController : MonoBehaviour
     private int _rightArmFrontBack = -1;
     private int _leftForearmStretch = -1;
     private int _rightForearmStretch = -1;
+    private int _leftLegFrontBack = -1;
+    private int _rightLegFrontBack = -1;
+    private int _leftKneeStretch = -1;
+    private int _rightKneeStretch = -1;
     private int _spineFrontBack = -1;
     private int _chestFrontBack = -1;
     private int _upperChestFrontBack = -1;
@@ -148,8 +156,7 @@ public class GuardController : MonoBehaviour
         if (guardAnimator == null)
             guardAnimator = GetComponentInChildren<Animator>();
         _canAnimate = CanDriveAnimator();
-        if (!_canAnimate)
-            _useProceduralAnimation = CacheProceduralBones();
+        _useProceduralAnimation = CacheProceduralBones();
     }
 
     void Start()
@@ -234,7 +241,8 @@ public class GuardController : MonoBehaviour
             guardAnimator.SetFloat(SpeedParam,   speed);
             guardAnimator.SetBool (AlertedParam, State == GuardState.Alerted);
         }
-        else if (_useProceduralAnimation)
+
+        if (_useProceduralAnimation)
         {
             UpdateProceduralAnimation(speed);
         }
@@ -273,6 +281,10 @@ public class GuardController : MonoBehaviour
         _rightArmFrontBack = FindMuscle("Right Arm Front-Back");
         _leftForearmStretch = FindMuscle("Left Forearm Stretch");
         _rightForearmStretch = FindMuscle("Right Forearm Stretch");
+        _leftLegFrontBack = FindMuscle("Left Upper Leg Front-Back");
+        _rightLegFrontBack = FindMuscle("Right Upper Leg Front-Back");
+        _leftKneeStretch = FindMuscle("Left Lower Leg Stretch");
+        _rightKneeStretch = FindMuscle("Right Lower Leg Stretch");
         _spineFrontBack = FindMuscle("Spine Front-Back");
         _chestFrontBack = FindMuscle("Chest Front-Back");
         _upperChestFrontBack = FindMuscle("Upper Chest Front-Back");
@@ -303,7 +315,7 @@ public class GuardController : MonoBehaviour
     {
         float moving = speed > 0.05f && !_waiting ? 1f : 0f;
         float strideSpeed = State == GuardState.Chase ? 8.5f : 5.5f;
-        float strideAmount = State == GuardState.Chase ? 0.7f : 0.46f;
+        float strideAmount = State == GuardState.Chase ? 1.15f : 0.82f;
         _animationTime += Time.deltaTime * strideSpeed * Mathf.Max(0.25f, moving);
 
         float stride = Mathf.Sin(_animationTime) * moving * strideAmount;
@@ -329,6 +341,14 @@ public class GuardController : MonoBehaviour
         SetMuscle(muscles, _leftForearmStretch, 0.45f + alert * 0.12f);
         SetMuscle(muscles, _rightForearmStretch, 0.45f + alert * 0.12f);
 
+        if (Mathf.Abs(stride) > 0.001f || leftStepBend > 0.001f || rightStepBend > 0.001f)
+        {
+            SetMuscle(muscles, _leftLegFrontBack, stride * proceduralLegStepMuscle);
+            SetMuscle(muscles, _rightLegFrontBack, stride * -proceduralLegStepMuscle);
+            SetMuscle(muscles, _leftKneeStretch, 0.85f - leftStepBend * proceduralKneeStepMuscle);
+            SetMuscle(muscles, _rightKneeStretch, 0.85f - rightStepBend * proceduralKneeStepMuscle);
+        }
+
         SetMuscle(muscles, _spineFrontBack, proceduralTorsoCorrection);
         SetMuscle(muscles, _chestFrontBack, proceduralTorsoCorrection * 0.5f);
         SetMuscle(muscles, _upperChestFrontBack, 0f);
@@ -342,6 +362,12 @@ public class GuardController : MonoBehaviour
     {
         if (index < 0 || index >= muscles.Length) return;
         muscles[index] = Mathf.Clamp(value, -1f, 1f);
+    }
+
+    private void AddMuscle(float[] muscles, int index, float delta)
+    {
+        if (index < 0 || index >= muscles.Length) return;
+        muscles[index] = Mathf.Clamp(muscles[index] + delta, -1f, 1f);
     }
 
     // ── Sensing ───────────────────────────────────────────────────────────────
@@ -613,7 +639,7 @@ public class GuardController : MonoBehaviour
             guardAnimator.SetFloat(SpeedParam,   0f);
             guardAnimator.SetBool (AlertedParam, false);
         }
-        else if (_useProceduralAnimation)
+        if (_useProceduralAnimation)
         {
             _animationTime = 0f;
             ApplyProceduralPose(0f, 0f, 0f, 0f);
