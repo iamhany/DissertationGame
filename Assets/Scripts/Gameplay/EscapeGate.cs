@@ -1,8 +1,9 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 
 /// <summary>
 /// Place on a GameObject to mark the escape goal for the player.
-/// Creates a blue pillar of light (particle system + point light) at runtime
+/// Creates a blue pillar of light at runtime
 /// and triggers level success when the player steps within <see cref="radius"/>.
 ///
 /// Replaces JumpPassZone as the win condition for the escape level.
@@ -14,17 +15,17 @@ public class EscapeGate : MonoBehaviour
     public float radius = 3f;
 
     [Header("Visual")]
-    public Color  pillarColour   = new Color(0.3f, 0.6f, 1f, 1f);
-    public float  pillarHeight   = 8f;
-    public float  lightIntensity = 2.5f;
-    public float  lightRange     = 10f;
+    public Color pillarColour = new Color(0.3f, 0.6f, 1f, 1f);
+    public float pillarHeight = 80f;
+    public float pillarRadius = 1.1f;
+    [Range(0.05f, 0.6f)]
+    public float pillarAlpha = 0.32f;
 
     private Transform _player;
     private bool      _triggered;
 
     // ── Built at runtime ──────────────────────────────────────────────────────
-    private ParticleSystem _particles;
-    private Light          _light;
+    private Renderer _pillarRenderer;
 
     void Start()
     {
@@ -53,82 +54,50 @@ public class EscapeGate : MonoBehaviour
 
     private void BuildVisual()
     {
-        // ── Point light ───────────────────────────────────────────────────────
-        var lightGO = new GameObject("GateLight");
-        lightGO.transform.SetParent(transform, false);
-        lightGO.transform.localPosition = Vector3.up * 1f;
-        _light           = lightGO.AddComponent<Light>();
-        _light.type      = LightType.Point;
-        _light.color     = pillarColour;
-        _light.intensity = lightIntensity;
-        _light.range     = lightRange;
+        // ── 3D pillar mesh ────────────────────────────────────────────────────
+        var pillarGO = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        pillarGO.name = "GatePillar";
+        pillarGO.transform.SetParent(transform, false);
+        pillarGO.transform.localPosition = Vector3.up * (pillarHeight * 0.5f);
+        pillarGO.transform.localScale = new Vector3(pillarRadius * 2f, pillarHeight * 0.5f, pillarRadius * 2f);
 
-        // ── Particle pillar ───────────────────────────────────────────────────
-        var psGO = new GameObject("GatePillar");
-        psGO.transform.SetParent(transform, false);
-        psGO.transform.localPosition = Vector3.zero;
+        var collider = pillarGO.GetComponent<Collider>();
+        if (collider != null) Destroy(collider);
 
-        _particles = psGO.AddComponent<ParticleSystem>();
-
-        // Main module — upward stream
-        var main          = _particles.main;
-        main.loop         = true;
-        main.startLifetime = pillarHeight / 3f;
-        main.startSpeed   = 3f;
-        main.startSize    = new ParticleSystem.MinMaxCurve(0.08f, 0.25f);
-        main.startColor   = new ParticleSystem.MinMaxGradient(
-            new Color(pillarColour.r, pillarColour.g, pillarColour.b, 0.4f),
-            new Color(pillarColour.r, pillarColour.g, pillarColour.b, 0.8f));
-        main.maxParticles = 300;
-        main.simulationSpace = ParticleSystemSimulationSpace.World;
-
-        // Emission
-        var emission     = _particles.emission;
-        emission.rateOverTime = 80f;
-
-        // Shape — disk at base, upward emission
-        var shape        = _particles.shape;
-        shape.shapeType  = ParticleSystemShapeType.Circle;
-        shape.radius     = radius * 0.4f;
-        shape.rotation   = new Vector3(-90f, 0f, 0f);   // emit upward
-
-        // Velocity over lifetime — keep going up
-        var vel          = _particles.velocityOverLifetime;
-        vel.enabled      = true;
-        vel.space        = ParticleSystemSimulationSpace.Local;
-        vel.x            = new ParticleSystem.MinMaxCurve(0f, 0f);
-        vel.y            = new ParticleSystem.MinMaxCurve(2f, 4f);
-        vel.z            = new ParticleSystem.MinMaxCurve(0f, 0f);
-
-        // Colour over lifetime — fade out at top
-        var col          = _particles.colorOverLifetime;
-        col.enabled      = true;
-        var grad         = new Gradient();
-        grad.SetKeys(
-            new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
-            new[] { new GradientAlphaKey(0.8f, 0f),        new GradientAlphaKey(0f, 1f) });
-        col.color        = new ParticleSystem.MinMaxGradient(grad);
-
-        // Size over lifetime — shrink toward top
-        var size         = _particles.sizeOverLifetime;
-        size.enabled     = true;
-        var sizeCurve    = new AnimationCurve(
-            new Keyframe(0f, 1f), new Keyframe(1f, 0.1f));
-        size.size        = new ParticleSystem.MinMaxCurve(1f, sizeCurve);
-
-        // Renderer — additive blend for glow (URP-compatible)
-        var rend              = _particles.GetComponent<ParticleSystemRenderer>();
-        rend.renderMode       = ParticleSystemRenderMode.Billboard;
-        var pShader = Shader.Find("Universal Render Pipeline/Particles/Unlit") ??
-                      Shader.Find("Particles/Standard Unlit") ??
-                      Shader.Find("Legacy Shaders/Particles/Additive");
-        if (pShader != null)
+        _pillarRenderer = pillarGO.GetComponent<Renderer>();
+        if (_pillarRenderer != null)
         {
-            rend.material       = new Material(pShader);
-            rend.material.color = pillarColour;
+            _pillarRenderer.material = CreatePillarMaterial();
+            _pillarRenderer.shadowCastingMode = ShadowCastingMode.Off;
+            _pillarRenderer.receiveShadows = false;
         }
 
-        _particles.Play();
+    }
+
+    private Material CreatePillarMaterial()
+    {
+        var shader = Shader.Find("Universal Render Pipeline/Unlit") ??
+                     Shader.Find("Unlit/Color") ??
+                     Shader.Find("Legacy Shaders/Transparent/Diffuse");
+        var material = new Material(shader);
+        var colour = new Color(pillarColour.r, pillarColour.g, pillarColour.b, pillarAlpha);
+
+        if (material.HasProperty("_BaseColor"))
+            material.SetColor("_BaseColor", colour);
+        if (material.HasProperty("_Color"))
+            material.SetColor("_Color", colour);
+
+        if (material.HasProperty("_Surface"))
+            material.SetFloat("_Surface", 1f);
+        if (material.HasProperty("_SrcBlend"))
+            material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+        if (material.HasProperty("_DstBlend"))
+            material.SetFloat("_DstBlend", (float)BlendMode.One);
+        if (material.HasProperty("_ZWrite"))
+            material.SetFloat("_ZWrite", 0f);
+        material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+        material.renderQueue = (int)RenderQueue.Transparent;
+        return material;
     }
 
     void OnDrawGizmos()

@@ -4,6 +4,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
 
 /// <summary>
@@ -15,6 +16,8 @@ using UnityEngine.UI;
 /// </summary>
 public static class SceneBuilder
 {
+    private const int UniversalRenderer3DIndex = 1;
+
     private const string PrefabDir    = "Assets/Prefabs";
     private const string PrefabPath   = "Assets/Prefabs/ChoiceButton.prefab";
     private const string SceneDir     = "Assets/Scenes";
@@ -266,7 +269,7 @@ public static class SceneBuilder
         var subtitleTextGO = CreateTMP("SubtitleText", subtitlePanelGO.transform,
             "", 20, TextAlignmentOptions.Center, Color.white);
         var subtitleTMP = subtitleTextGO.GetComponent<TextMeshProUGUI>();
-        subtitleTMP.enableWordWrapping = true;
+        subtitleTMP.textWrappingMode   = TextWrappingModes.Normal;
         subtitleTMP.overflowMode       = TextOverflowModes.Overflow;
         subtitlePanelGO.SetActive(false);
 
@@ -302,14 +305,14 @@ public static class SceneBuilder
         var eventTitleGO = CreateTMP("TitleText", dialoguePanelGO.transform,
             "", 26, TextAlignmentOptions.Center, new Color(0.95f, 0.85f, 0.3f));
         var titleTMP = eventTitleGO.GetComponent<TextMeshProUGUI>();
-        titleTMP.enableWordWrapping = true;
+        titleTMP.textWrappingMode   = TextWrappingModes.Normal;
         titleTMP.overflowMode       = TextOverflowModes.Overflow;
 
         // Narrative text — centered, auto-wraps
         var narrativeGO = CreateTMP("NarrativeText", dialoguePanelGO.transform,
             "", 20, TextAlignmentOptions.Center, Color.white);
         var narrativeTMP = narrativeGO.GetComponent<TextMeshProUGUI>();
-        narrativeTMP.enableWordWrapping = true;
+        narrativeTMP.textWrappingMode   = TextWrappingModes.Normal;
         narrativeTMP.overflowMode       = TextOverflowModes.Overflow;
 
         var dialogueComp = dialoguePanelGO.AddComponent<DialoguePanel>();
@@ -386,7 +389,7 @@ public static class SceneBuilder
         var bodyGO = CreateTMP("BodyText", bodyPanelGO.transform,
             "", 19, TextAlignmentOptions.Center, Color.white);
         var bodyTMP = bodyGO.GetComponent<TextMeshProUGUI>();
-        bodyTMP.enableWordWrapping = true;
+        bodyTMP.textWrappingMode   = TextWrappingModes.Normal;
         bodyTMP.overflowMode       = TextOverflowModes.Overflow;
         bodyPanelGO.SetActive(false);
 
@@ -488,6 +491,7 @@ public static class SceneBuilder
         cam.fieldOfView   = 75f;
         cam.nearClipPlane = 0.1f;
         cam.farClipPlane  = 500f;
+        cam.GetUniversalAdditionalCameraData().SetRenderer(UniversalRenderer3DIndex);
         camGO.AddComponent<AudioListener>();
         fpc.cameraTransform = camGO.transform;
 
@@ -500,15 +504,17 @@ public static class SceneBuilder
         var hudT      = hudCanvas.transform;
 
         var instrGO = CreateTMP("InstructionText", hudT,
-            "Explore the Garden of Gethsemane\nWASD \u00b7 Mouse to look \u00b7 [E] to finish",
+            "",
             16, TextAlignmentOptions.TopLeft, new Color(0.9f, 0.9f, 0.9f));
         SetAnchors(instrGO.GetComponent<RectTransform>(),
             new Vector2(0.01f, 0.88f), new Vector2(0.55f, 0.99f));
+        instrGO.SetActive(false);
 
         var progressGO = CreateTMP("ProgressText", hudT, "", 15,
             TextAlignmentOptions.TopLeft, new Color(0.9f, 0.85f, 0.5f));
         SetAnchors(progressGO.GetComponent<RectTransform>(),
             new Vector2(0.01f, 0.82f), new Vector2(0.55f, 0.88f));
+        progressGO.SetActive(false);
 
         // ── Continue panel (success) ──────────────────────────────────────────
         var panelGO = CreatePanel("ContinuePanel", hudT, new Color(0f, 0f, 0f, 0.82f));
@@ -541,21 +547,36 @@ public static class SceneBuilder
             "Try Again", new Vector2(0.2f, 0.08f), new Vector2(0.8f, 0.38f));
 
         // ── Guards ───────────────────────────────────────────────────────────
-        // Three guards with patrol waypoints spread around the scene centre.
+        // Guards with patrol waypoints spread across the garden.
         // ExplorationSceneManager finds them via FindObjectsByType at runtime.
-        // Move these GameObjects in the Editor after running Build All Scenes
-        
-        // to match your Synty Demo layout.
         var guardPositions = new Vector3[]
         {
-            new Vector3( 5f, 0f,  4f),
-            new Vector3(-6f, 0f,  5f),
-            new Vector3( 7f, 0f, -4f),
-            new Vector3(-5f, 0f, -6f),
-            new Vector3(10f, 0f,  2f),
-            new Vector3(-10f, 0f, -2f),
-            new Vector3( 3f, 0f,  9f),
-            new Vector3(-3f, 0f, -9f),
+            new Vector3( 16f,  0f,   4f),
+            new Vector3( 36f, -1f,   8f),
+            new Vector3( 58f, -3f,  13f),
+            new Vector3( 82f, -5f,  18f),
+            new Vector3( 18f,  0f, -22f),
+            new Vector3( 28f,  0f,  28f),
+            new Vector3( 42f, -1f, -38f),
+            new Vector3( 52f, -2f,  36f),
+            new Vector3( 66f, -3f, -28f),
+            new Vector3( 76f, -4f,  34f),
+            new Vector3( 90f, -5f, -42f),
+            new Vector3(102f, -6f,  42f),
+            new Vector3(116f, -8f, -30f),
+            new Vector3(104f, -7f, -14f),
+            new Vector3( 12f,  0f,  42f),
+            new Vector3( 34f,  0f,  -4f),
+            new Vector3( 48f, -1f,  18f),
+            new Vector3( 62f, -2f,  -6f),
+            new Vector3( 78f, -4f,   2f),
+            new Vector3( 92f, -5f,  30f),
+            new Vector3(110f, -7f,  -4f),
+            new Vector3( 72f, -3f,  48f),
+            new Vector3( 98f, -6f, -52f),
+            new Vector3(118f, -8f, -48f),
+            new Vector3(  6f,  0f, -10f),
+            new Vector3( 24f,  0f,  52f),
         };
 
         for (int gi = 0; gi < guardPositions.Length; gi++)
@@ -583,14 +604,20 @@ public static class SceneBuilder
             }
 
             var gc = guardGO.AddComponent<GuardController>();
+            gc.moveSpeed = 0.95f;
+            gc.chaseSpeed = 3.25f;
+            gc.alertedSpeed = 1.9f;
+            gc.catchDistance = 1.15f;
+            gc.proceduralTorsoCorrection = 0f;
 
             // 3 patrol waypoints in a triangle around the guard
-            float angle = gi * 120f * Mathf.Deg2Rad;
+            float radius = 7f + (gi % 2) * 2f;
+            float angle = gi * 47f * Mathf.Deg2Rad;
             var offsets = new Vector3[]
             {
-                new Vector3(Mathf.Cos(angle)          * 8f, 0f, Mathf.Sin(angle)          * 8f),
-                new Vector3(Mathf.Cos(angle + 2.09f)  * 8f, 0f, Mathf.Sin(angle + 2.09f)  * 8f),
-                new Vector3(Mathf.Cos(angle + 4.19f)  * 8f, 0f, Mathf.Sin(angle + 4.19f)  * 8f),
+                new Vector3(Mathf.Cos(angle)          * radius, 0f, Mathf.Sin(angle)          * radius),
+                new Vector3(Mathf.Cos(angle + 2.09f)  * radius, 0f, Mathf.Sin(angle + 2.09f)  * radius),
+                new Vector3(Mathf.Cos(angle + 4.19f)  * radius, 0f, Mathf.Sin(angle + 4.19f)  * radius),
             };
 
             for (int wi = 0; wi < offsets.Length; wi++)
@@ -604,7 +631,7 @@ public static class SceneBuilder
         // ── Escape Gate ───────────────────────────────────────────────────────
         // Position this to match your actual exit point in the Demo scene.
         var gateGO = new GameObject("EscapeGate");
-        gateGO.transform.position = new Vector3(15f, 0f, 0f);
+        gateGO.transform.position = new Vector3(127.3f, -8.143999f, 29.48f);
         gateGO.AddComponent<EscapeGate>();
 
         esm.instructionText      = instrGO.GetComponent<TextMeshProUGUI>();
@@ -614,14 +641,6 @@ public static class SceneBuilder
         esm.continueButton       = contBtn;
         esm.retryPanel           = retryPanelGO;
         esm.retryButton          = retryBtn;
-
-        // ── Skip button (testing only, top-right corner) ──────────────────────
-        var (skipBtn, skipLabel) = CreateAnchoredButton("SkipButton", hudCanvas.transform,
-            "[SKIP LEVEL]", new Vector2(0.78f, 0.92f), new Vector2(0.99f, 0.99f));
-        skipLabel.fontSize = 16;
-        var skipBtnImg = skipBtn.GetComponent<Image>();
-        if (skipBtnImg != null) skipBtnImg.color = new Color(0.7f, 0.1f, 0.1f, 0.85f);
-        esm.skipButton = skipBtn;
 
         EditorSceneManager.SaveScene(scene, ExplorationScenePath);
         Debug.Log($"[SceneBuilder] ExplorationScene \u2192 {ExplorationScenePath}");

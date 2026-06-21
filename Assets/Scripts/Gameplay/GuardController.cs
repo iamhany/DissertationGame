@@ -59,9 +59,31 @@ public class GuardController : MonoBehaviour
     [Tooltip("Base hearing radius at full noise (NoiseLevel = 1).")]
     public float hearingRadius = 6f;
 
+    [Header("Obstacle Jumping")]
+    [Tooltip("Vertical impulse guards use when stepping over low obstacles.")]
+    public float obstacleJumpForce = 4.8f;
+    [Tooltip("How far ahead guards check for a low obstacle.")]
+    public float obstacleProbeDistance = 0.9f;
+    [Tooltip("Height of the low forward check, measured from the guard feet.")]
+    public float obstacleProbeHeight = 0.45f;
+    [Tooltip("Height that must be clear above the obstacle before the guard jumps.")]
+    public float obstacleClearanceHeight = 1.25f;
+    [Tooltip("Minimum seconds between automatic obstacle jumps.")]
+    public float obstacleJumpCooldown = 0.75f;
+
+    [Header("Unstuck")]
+    [Tooltip("How long a guard can fail to move before choosing an escape direction.")]
+    public float stuckTimeBeforeRepath = 0.65f;
+    [Tooltip("Seconds spent sidestepping or backing away before trying the target again.")]
+    public float unstuckDuration = 0.9f;
+    [Tooltip("Minimum horizontal movement per second before a guard counts as stuck.")]
+    public float stuckMinMoveSpeed = 0.08f;
+
     [Header("Animation")]
     [Tooltip("Animator on the guard mesh. Needs float 'Speed' and bool 'Alerted'.")]
     public Animator guardAnimator;
+    [Tooltip("Small torso correction used by the procedural fallback posture.")]
+    public float proceduralTorsoCorrection = 0f;
 
     // ── State ─────────────────────────────────────────────────────────────────
 
@@ -83,9 +105,35 @@ public class GuardController : MonoBehaviour
 
     private const float Gravity = -15f;
     private float _vertVel;
+    private float _nextObstacleJumpTime;
+    private float _stuckTimer;
+    private float _unstuckUntil;
+    private Vector3 _unstuckDirection;
     // Grace period (seconds) before guards start sensing, to prevent
     // false catches during scene-load frame spikes.
     private float _senseDelay = 2f;
+
+    private bool _canAnimate;
+    private bool _useProceduralAnimation;
+    private static readonly int SpeedParam = Animator.StringToHash("Speed");
+    private static readonly int AlertedParam = Animator.StringToHash("Alerted");
+
+    private HumanPoseHandler _poseHandler;
+    private HumanPose        _humanPose;
+    private float[]          _neutralMuscles;
+    private int _leftArmDownUp = -1;
+    private int _rightArmDownUp = -1;
+    private int _leftArmFrontBack = -1;
+    private int _rightArmFrontBack = -1;
+    private int _leftForearmStretch = -1;
+    private int _rightForearmStretch = -1;
+    private int _spineFrontBack = -1;
+    private int _chestFrontBack = -1;
+    private int _upperChestFrontBack = -1;
+    private int _neckLeftRight = -1;
+
+    private float _animationTime;
+
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
     void Awake()
@@ -99,6 +147,9 @@ public class GuardController : MonoBehaviour
         }
         if (guardAnimator == null)
             guardAnimator = GetComponentInChildren<Animator>();
+        _canAnimate = CanDriveAnimator();
+        if (!_canAnimate)
+            _useProceduralAnimation = CacheProceduralBones();
     }
 
     void Start()
@@ -164,8 +215,6 @@ public class GuardController : MonoBehaviour
 
     private void UpdateAnimation()
     {
-        if (guardAnimator == null) return;
-
         float speed = 0f;
         switch (State)
         {
@@ -180,8 +229,119 @@ public class GuardController : MonoBehaviour
                 break;
         }
 
-        guardAnimator.SetFloat("Speed",   speed);
-        guardAnimator.SetBool ("Alerted", State == GuardState.Alerted);
+        if (_canAnimate)
+        {
+            guardAnimator.SetFloat(SpeedParam,   speed);
+            guardAnimator.SetBool (AlertedParam, State == GuardState.Alerted);
+        }
+        else if (_useProceduralAnimation)
+        {
+            UpdateProceduralAnimation(speed);
+        }
+    }
+
+    private bool CanDriveAnimator()
+    {
+        if (guardAnimator == null || guardAnimator.runtimeAnimatorController == null)
+            return false;
+
+        bool hasSpeed = false;
+        bool hasAlerted = false;
+
+        foreach (AnimatorControllerParameter parameter in guardAnimator.parameters)
+        {
+            if (parameter.nameHash == SpeedParam && parameter.type == AnimatorControllerParameterType.Float)
+                hasSpeed = true;
+            if (parameter.nameHash == AlertedParam && parameter.type == AnimatorControllerParameterType.Bool)
+                hasAlerted = true;
+        }
+
+        return hasSpeed && hasAlerted;
+    }
+
+    private bool CacheProceduralBones()
+    {
+        if (guardAnimator == null || guardAnimator.avatar == null || !guardAnimator.avatar.isHuman)
+            return false;
+
+        _poseHandler = new HumanPoseHandler(guardAnimator.avatar, guardAnimator.transform);
+        _poseHandler.GetHumanPose(ref _humanPose);
+
+        _leftArmDownUp = FindMuscle("Left Arm Down-Up");
+        _rightArmDownUp = FindMuscle("Right Arm Down-Up");
+        _leftArmFrontBack = FindMuscle("Left Arm Front-Back");
+        _rightArmFrontBack = FindMuscle("Right Arm Front-Back");
+        _leftForearmStretch = FindMuscle("Left Forearm Stretch");
+        _rightForearmStretch = FindMuscle("Right Forearm Stretch");
+        _spineFrontBack = FindMuscle("Spine Front-Back");
+        _chestFrontBack = FindMuscle("Chest Front-Back");
+        _upperChestFrontBack = FindMuscle("Upper Chest Front-Back");
+        _neckLeftRight = FindMuscle("Neck Left-Right");
+        _neutralMuscles = (float[])_humanPose.muscles.Clone();
+
+        bool hasCoreMuscles =
+            _leftArmDownUp >= 0 && _rightArmDownUp >= 0;
+
+        if (hasCoreMuscles)
+            ApplyProceduralPose(0f, 0f, 0f, 0f);
+
+        return hasCoreMuscles;
+    }
+
+    private int FindMuscle(string muscleName)
+    {
+        for (int i = 0; i < HumanTrait.MuscleCount; i++)
+        {
+            if (HumanTrait.MuscleName[i] == muscleName)
+                return i;
+        }
+
+        return -1;
+    }
+
+    private void UpdateProceduralAnimation(float speed)
+    {
+        float moving = speed > 0.05f && !_waiting ? 1f : 0f;
+        float strideSpeed = State == GuardState.Chase ? 8.5f : 5.5f;
+        float strideAmount = State == GuardState.Chase ? 0.7f : 0.46f;
+        _animationTime += Time.deltaTime * strideSpeed * Mathf.Max(0.25f, moving);
+
+        float stride = Mathf.Sin(_animationTime) * moving * strideAmount;
+        float leftStepBend = Mathf.Clamp01((Mathf.Cos(_animationTime) - 0.35f) / 0.65f) * moving;
+        float rightStepBend = Mathf.Clamp01((-Mathf.Cos(_animationTime) - 0.35f) / 0.65f) * moving;
+        float alert = State == GuardState.Alerted ? 1f : 0f;
+
+        ApplyProceduralPose(stride, leftStepBend, rightStepBend, alert);
+    }
+
+    private void ApplyProceduralPose(float stride, float leftStepBend, float rightStepBend, float alert)
+    {
+        if (_poseHandler == null) return;
+
+        if (_neutralMuscles == null) return;
+
+        float[] muscles = (float[])_neutralMuscles.Clone();
+
+        SetMuscle(muscles, _leftArmDownUp, -0.65f);
+        SetMuscle(muscles, _rightArmDownUp, -0.65f);
+        SetMuscle(muscles, _leftArmFrontBack, stride * -0.22f);
+        SetMuscle(muscles, _rightArmFrontBack, stride * 0.22f);
+        SetMuscle(muscles, _leftForearmStretch, 0.45f + alert * 0.12f);
+        SetMuscle(muscles, _rightForearmStretch, 0.45f + alert * 0.12f);
+
+        SetMuscle(muscles, _spineFrontBack, proceduralTorsoCorrection);
+        SetMuscle(muscles, _chestFrontBack, proceduralTorsoCorrection * 0.5f);
+        SetMuscle(muscles, _upperChestFrontBack, 0f);
+        SetMuscle(muscles, _neckLeftRight, Mathf.Sin(_animationTime * 0.5f) * alert * 0.35f);
+
+        _humanPose.muscles = muscles;
+        _poseHandler.SetHumanPose(ref _humanPose);
+    }
+
+    private void SetMuscle(float[] muscles, int index, float value)
+    {
+        if (index < 0 || index >= muscles.Length) return;
+        muscles[index] = Mathf.Clamp(value, -1f, 1f);
     }
 
     // ── Sensing ───────────────────────────────────────────────────────────────
@@ -316,15 +476,122 @@ public class GuardController : MonoBehaviour
 
     private void MoveToward(Vector3 target, float speed)
     {
-        Vector3 dir = target - transform.position;
-        dir.y = 0f;
-        if (dir.magnitude > 0.05f)
+        Vector3 desiredDir = target - transform.position;
+        desiredDir.y = 0f;
+
+        Vector3 moveDir = desiredDir;
+        if (moveDir.magnitude > 0.05f)
         {
-            dir.Normalize();
+            moveDir.Normalize();
+
+            if (Time.time < _unstuckUntil)
+            {
+                moveDir = _unstuckDirection;
+            }
+            else
+            {
+                if (!TryJumpObstacle(moveDir) && IsBlockedAhead(moveDir))
+                    BeginUnstuck(moveDir);
+
+                if (Time.time < _unstuckUntil)
+                    moveDir = _unstuckDirection;
+            }
+
             transform.rotation = Quaternion.Slerp(
-                transform.rotation, Quaternion.LookRotation(dir), 8f * Time.deltaTime);
+                transform.rotation, Quaternion.LookRotation(moveDir), 8f * Time.deltaTime);
         }
-        _cc.Move((dir * speed + Vector3.up * _vertVel) * Time.deltaTime);
+
+        Vector3 before = transform.position;
+        _cc.Move((moveDir.normalized * speed + Vector3.up * _vertVel) * Time.deltaTime);
+        UpdateStuckDetection(before, desiredDir, speed);
+    }
+
+    private bool TryJumpObstacle(Vector3 direction)
+    {
+        if (!_cc.isGrounded || Time.time < _nextObstacleJumpTime) return false;
+        if (direction.sqrMagnitude < 0.001f) return false;
+
+        int mask = obstacleMask.value != 0 ? obstacleMask.value : ~0;
+        float probeRadius = Mathf.Max(0.08f, _cc.radius * 0.55f);
+        Vector3 lowOrigin = transform.position + Vector3.up * obstacleProbeHeight;
+        Vector3 highOrigin = transform.position + Vector3.up * obstacleClearanceHeight;
+
+        if (!Physics.SphereCast(lowOrigin, probeRadius, direction, out var lowHit,
+                obstacleProbeDistance, mask, QueryTriggerInteraction.Ignore))
+            return false;
+
+        if (IsOwnOrPlayerTransform(lowHit.transform)) return false;
+
+        bool blockedAtChest = Physics.SphereCast(highOrigin, probeRadius, direction,
+            out _, obstacleProbeDistance, mask, QueryTriggerInteraction.Ignore);
+        if (blockedAtChest) return false;
+
+        _vertVel = obstacleJumpForce;
+        _nextObstacleJumpTime = Time.time + obstacleJumpCooldown;
+        return true;
+    }
+
+    private void UpdateStuckDetection(Vector3 before, Vector3 desiredDirection, float speed)
+    {
+        if (Time.time < _unstuckUntil || desiredDirection.sqrMagnitude < 0.01f || speed <= 0.05f)
+        {
+            _stuckTimer = 0f;
+            return;
+        }
+
+        Vector3 moved = transform.position - before;
+        moved.y = 0f;
+        float minMove = stuckMinMoveSpeed * Time.deltaTime;
+        if (moved.magnitude < minMove)
+            _stuckTimer += Time.deltaTime;
+        else
+            _stuckTimer = 0f;
+
+        if (_stuckTimer >= stuckTimeBeforeRepath)
+        {
+            Vector3 dir = desiredDirection;
+            dir.y = 0f;
+            BeginUnstuck(dir.normalized);
+        }
+    }
+
+    private bool IsBlockedAhead(Vector3 direction)
+    {
+        int mask = obstacleMask.value != 0 ? obstacleMask.value : ~0;
+        float probeRadius = Mathf.Max(0.08f, _cc.radius * 0.55f);
+        Vector3 origin = transform.position + Vector3.up * obstacleClearanceHeight;
+
+        if (!Physics.SphereCast(origin, probeRadius, direction, out var hit,
+                obstacleProbeDistance, mask, QueryTriggerInteraction.Ignore))
+            return false;
+
+        return !IsOwnOrPlayerTransform(hit.transform);
+    }
+
+    private void BeginUnstuck(Vector3 blockedDirection)
+    {
+        if (blockedDirection.sqrMagnitude < 0.001f) return;
+
+        Vector3 right = Vector3.Cross(Vector3.up, blockedDirection).normalized;
+        Vector3 left = -right;
+        Vector3 back = -blockedDirection.normalized;
+
+        if (!IsBlockedAhead(right))
+            _unstuckDirection = right;
+        else if (!IsBlockedAhead(left))
+            _unstuckDirection = left;
+        else
+            _unstuckDirection = back;
+
+        _stuckTimer = 0f;
+        _unstuckUntil = Time.time + unstuckDuration;
+    }
+
+    private bool IsOwnOrPlayerTransform(Transform hitTransform)
+    {
+        if (hitTransform == null) return false;
+        if (hitTransform == transform || hitTransform.IsChildOf(transform)) return true;
+        return _player != null && (hitTransform == _player || hitTransform.IsChildOf(_player));
     }
 
     // ── Reset ─────────────────────────────────────────────────────────────────
@@ -336,12 +603,20 @@ public class GuardController : MonoBehaviour
         _alertTimer    = 0f;
         _waypointIndex = 0;
         _hasLastKnown  = false;
+        _stuckTimer    = 0f;
+        _unstuckUntil  = 0f;
+        _unstuckDirection = Vector3.zero;
         State          = GuardState.Patrol;
         StopAllCoroutines();
-        if (guardAnimator != null)
+        if (_canAnimate)
         {
-            guardAnimator.SetFloat("Speed",   0f);
-            guardAnimator.SetBool ("Alerted", false);
+            guardAnimator.SetFloat(SpeedParam,   0f);
+            guardAnimator.SetBool (AlertedParam, false);
+        }
+        else if (_useProceduralAnimation)
+        {
+            _animationTime = 0f;
+            ApplyProceduralPose(0f, 0f, 0f, 0f);
         }
     }
 }
