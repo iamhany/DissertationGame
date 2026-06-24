@@ -22,7 +22,7 @@ public class SettingsPanel : MonoBehaviour
     // Re-sync slider positions whenever the panel becomes visible
     void OnEnable()
     {
-        var am = AudioManager.Instance;
+        var am = AudioManager.EnsureExists();
         if (am == null) return;
 
         SetupSlider(masterSlider, am.MasterVolume,

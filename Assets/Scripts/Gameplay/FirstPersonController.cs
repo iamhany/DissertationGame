@@ -48,9 +48,18 @@ public class FirstPersonController : MonoBehaviour
 
     void Update()
     {
-        if (!_controlEnabled) return;
+        if (!_controlEnabled)
+        {
+            AudioManager.Instance?.StopMovementLoop();
+            return;
+        }
         HandleLook();
         HandleMovement();
+    }
+
+    void OnDisable()
+    {
+        AudioManager.Instance?.StopMovementLoop();
     }
 
     private void HandleLook()
@@ -91,6 +100,7 @@ public class FirstPersonController : MonoBehaviour
 
         var horizontal = transform.right * x + transform.forward * z;
         if (horizontal.magnitude > 1f) horizontal.Normalize();
+        AudioManager.Instance?.UpdateStealthMovementAudio(horizontal.sqrMagnitude > 0.01f, IsNitroActive);
 
         if (_cc.isGrounded)
         {
@@ -128,6 +138,8 @@ public class FirstPersonController : MonoBehaviour
         _controlEnabled  = locked;
         Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
         Cursor.visible   = !locked;
+        if (!locked)
+            AudioManager.Instance?.StopMovementLoop();
     }
 
     public void ResetLook(Quaternion bodyRotation, Quaternion cameraLocalRotation)

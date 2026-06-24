@@ -75,6 +75,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void RestartGame()
     {
+        AudioManager.Instance?.ResetTeleportPlaybackHistory();
         SaveManager.Instance?.ClearSave();
         IsLoadingSave = false;
         StateManager.Instance?.ResetState();

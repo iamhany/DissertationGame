@@ -161,13 +161,30 @@ public class EndingController : MonoBehaviour
 
         if (_ending.Type == EndingType.Paradox)
         {
+            yield return ShowTeleportImageAndWait(0);
             yield return RunParadoxSequence();
             yield break;
         }
 
+        yield return ShowTeleportImageAndWait(0);
         yield return ShowImageTextAndWait(1, _ending.Body);
         HideSubtitle();
         if (beliefChoicePanel != null) beliefChoicePanel.SetActive(true);
+    }
+
+    private IEnumerator ShowTeleportImageAndWait(int imageIndex)
+    {
+        if (endingImageDisplay == null || imageLibrary?.endingImages == null ||
+            imageIndex < 0 || imageIndex >= imageLibrary.endingImages.Length ||
+            imageLibrary.endingImages[imageIndex] == null)
+            yield break;
+
+        var audioManager = AudioManager.EnsureExists();
+        audioManager?.PlayQuietNightMusic();
+        audioManager?.PlayTeleportOnce("ending_intro");
+        yield return endingImageDisplay.FadeTo(imageLibrary.endingImages[imageIndex]);
+        yield return WaitForAdvance();
+        audioManager?.FadeOutTeleport();
     }
 
     private IEnumerator RunParadoxSequence()
@@ -393,7 +410,7 @@ public class EndingController : MonoBehaviour
         if (restartButton != null)
         {
             restartButton.onClick.RemoveAllListeners();
-            restartButton.onClick.AddListener(() => GameManager.Instance.RestartGame());
+            restartButton.onClick.AddListener(OnRestartClicked);
         }
 
         if (quitButton != null)
@@ -410,6 +427,12 @@ public class EndingController : MonoBehaviour
 #else
         Application.Quit();
 #endif
+    }
+
+    private static void OnRestartClicked()
+    {
+        AudioManager.EnsureExists()?.PlayTeleportOnce("take_me_back");
+        GameManager.Instance.RestartGame();
     }
 
     private IEnumerator ShowExitMenuDelayed(float delay)

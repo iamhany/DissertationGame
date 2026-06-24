@@ -29,6 +29,7 @@ public class ChoiceButton : MonoBehaviour
 
     private void OnClick()
     {
+        AudioManager.EnsureExists()?.PlayChoiceClick();
         _button.interactable = false;   // prevent double-click
         _callback?.Invoke(_choice);
     }

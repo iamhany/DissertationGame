@@ -435,8 +435,11 @@ public class GuardController : MonoBehaviour
 
     private void EnterChase()
     {
+        bool wasChasing = State == GuardState.Chase;
         State = GuardState.Chase;
         _alertTimer = alertDuration;
+        if (!wasChasing)
+            AudioManager.Instance?.PlayGuardHey();
         // Broadcast to all other guards
         GuardAlertNetwork.BroadcastAlert(this, _lastKnownPos);
     }

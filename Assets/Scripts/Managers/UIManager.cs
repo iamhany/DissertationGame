@@ -121,11 +121,16 @@ public class UIManager : MonoBehaviour
                         ? evt.slideshowTexts[i] : null;
 
                     storyImageDisplay.SetImmediate(frames[i]);
+                    if (ShouldStartTeleportForSlideshowFrame(evt, i, frames[i]))
+                        AudioManager.EnsureExists()?.PlayTeleportOnce("narrative");
                     ShowSubtitle(null);                      // hide while blacked out
                     yield return fadeController.FadeIn();
                     if (!string.IsNullOrEmpty(frameText))
                         yield return TypewriteSubtitle(frameText);
-                    yield return WaitForClickOrTimeout(storyImageDisplay.slideshowHoldTime);
+                    bool skipped = false;
+                    yield return WaitForClickOrTimeout(storyImageDisplay.slideshowHoldTime, wasSkipped: v => skipped = v);
+                    if (skipped)
+                        AudioManager.EnsureExists()?.FadeOutTeleport();
                     ShowSubtitle(null);
                     yield return fadeController.FadeOut();
                 }
@@ -196,8 +201,13 @@ public class UIManager : MonoBehaviour
                     {
                         yield return fadeController.FadeOut();
                         storyImageDisplay.SetImmediate(frame);
+                        if (ShouldStartTeleportForPostChoiceFrame(_currentEvent, frame))
+                            AudioManager.EnsureExists()?.PlayTeleportOnce("narrative");
                         yield return fadeController.FadeIn();
-                        yield return WaitForClickOrTimeout(storyImageDisplay.slideshowHoldTime);
+                        bool skipped = false;
+                        yield return WaitForClickOrTimeout(storyImageDisplay.slideshowHoldTime, 0.2f, v => skipped = v);
+                        if (skipped)
+                            AudioManager.EnsureExists()?.FadeOutTeleport();
                     }
                 }
             }
@@ -241,17 +251,44 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    private IEnumerator WaitForClickOrTimeout(float seconds)
+    private IEnumerator WaitForClickOrTimeout(float seconds, float inputLockSeconds = 0f, System.Action<bool> wasSkipped = null)
     {
         float elapsed = 0f;
         _skipSlide = false;
+        while (elapsed < inputLockSeconds)
+        {
+            elapsed += Time.deltaTime;
+            _skipSlide = false;
+            yield return null;
+        }
+
+        elapsed = 0f;
         while (elapsed < seconds && !_skipSlide)
         {
             elapsed += Time.deltaTime;
             yield return null;
         }
+        wasSkipped?.Invoke(_skipSlide);
         _skipSlide = false;
     }
+
+    private static bool IsSpriteNamed(Sprite sprite, string spriteName)
+    {
+        return sprite != null && sprite.name == spriteName;
+    }
+
+    private static bool ShouldStartTeleportForPostChoiceFrame(NarrativeEvent evt, Sprite frame)
+    {
+        return evt != null && evt.id == "event_0" || IsSpriteNamed(frame, "event0_3");
+    }
+
+    private static bool ShouldStartTeleportForSlideshowFrame(NarrativeEvent evt, int frameIndex, Sprite frame)
+    {
+        return evt != null && evt.id == "event_1" && frameIndex == 0 ||
+               IsSpriteNamed(frame, "event0_3") ||
+               IsSpriteNamed(frame, "event1_1");
+    }
+
 
     private void ClearChoiceButtons()
     {
