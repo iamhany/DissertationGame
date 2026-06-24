@@ -637,9 +637,12 @@ public class GuardController : MonoBehaviour
         _alertTimer    = 0f;
         _waypointIndex = 0;
         _hasLastKnown  = false;
+        _vertVel       = 0f;
+        _nextObstacleJumpTime = 0f;
         _stuckTimer    = 0f;
         _unstuckUntil  = 0f;
         _unstuckDirection = Vector3.zero;
+        _senseDelay    = 2f;
         State          = GuardState.Patrol;
         StopAllCoroutines();
         if (_canAnimate)

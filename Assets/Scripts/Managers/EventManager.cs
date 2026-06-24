@@ -109,7 +109,9 @@ public class EventManager : MonoBehaviour
 
         mem.lastChoiceEventId = _currentEvent?.id;
         mem.lastChoiceKey = null;
-        mem.lastChoiceWasSecondOption = choiceIndex == 1;
+        bool countsForEscapeChoicePattern = _currentEvent?.id != "event_0";
+
+        mem.lastChoiceWasSecondOption = countsForEscapeChoicePattern && choiceIndex == 1;
         mem.lastChoiceWasBoldestOption = choiceIndex == 2;
         if (mem.lastChoiceWasSecondOption)
         {

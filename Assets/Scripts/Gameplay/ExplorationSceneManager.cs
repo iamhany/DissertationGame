@@ -221,7 +221,7 @@ public class ExplorationSceneManager : MonoBehaviour
         if (_nitroMeterGroup != null) _nitroMeterGroup.SetActive(false);
         if (_rearGuardSoundGroup != null) _rearGuardSoundGroup.SetActive(false);
         foreach (var g in _guards) g.enabled = false;
-        RespawnPlayerAtStart(true);
+        ResetActorsToStart(false);
         if (retryPanel != null) retryPanel.SetActive(true);
     }
 
@@ -404,18 +404,7 @@ public class ExplorationSceneManager : MonoBehaviour
         if (_zones != null)
             foreach (var z in _zones) z.ResetZone();
 
-        for (int i = 0; i < _guards.Length; i++)
-        {
-            bool active = _guardStartsActive == null || i >= _guardStartsActive.Length || _guardStartsActive[i];
-            _guards[i].gameObject.SetActive(active);
-            if (!active) continue;
-
-            _guards[i].transform.SetPositionAndRotation(_guardStartPos[i], _guardStartRot[i]);
-            _guards[i].ResetGuard();
-            _guards[i].enabled = true;
-        }
-
-        RespawnPlayerAtStart(true);
+        ResetActorsToStart(true);
         _player?.LockCursor(true);
 
         if (retryPanel      != null) retryPanel.SetActive(false);
@@ -439,6 +428,40 @@ public class ExplorationSceneManager : MonoBehaviour
         _player.ResetNitro();
 
         if (controller != null) controller.enabled = true;
+    }
+
+    private void ResetActorsToStart(bool enableStartingGuards)
+    {
+        RespawnPlayerAtStart(true);
+
+        if (_guards == null) return;
+
+        for (int i = 0; i < _guards.Length; i++)
+        {
+            GuardController guard = _guards[i];
+            if (guard == null) continue;
+
+            bool startsActive = _guardStartsActive == null || i >= _guardStartsActive.Length || _guardStartsActive[i];
+            bool shouldBeActive = enableStartingGuards && startsActive;
+
+            if (!guard.gameObject.activeSelf)
+                guard.gameObject.SetActive(true);
+
+            var controller = guard.GetComponent<CharacterController>();
+            if (controller != null) controller.enabled = false;
+
+            if (_guardStartPos != null && i < _guardStartPos.Length &&
+                _guardStartRot != null && i < _guardStartRot.Length)
+            {
+                guard.transform.SetPositionAndRotation(_guardStartPos[i], _guardStartRot[i]);
+            }
+
+            guard.ResetGuard();
+
+            if (controller != null) controller.enabled = true;
+            guard.enabled = shouldBeActive;
+            guard.gameObject.SetActive(shouldBeActive);
+        }
     }
 
     private Canvas GetHudCanvas()
