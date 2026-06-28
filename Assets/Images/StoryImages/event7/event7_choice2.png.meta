@@ -4,7 +4,7 @@ TextureImporter:
   internalIDToNameTable:
   - first:
       213: 2134965057069712462
-    second: event7_choice7_0
+    second: event7_choice2_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,7 +113,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: event7_choice7_0
+      name: event7_choice2_0
       rect:
         serializedVersion: 2
         x: 0
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      event7_choice7_0: 2134965057069712462
+      event7_choice2_0: 2134965057069712462
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

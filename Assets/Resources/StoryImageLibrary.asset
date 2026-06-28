@@ -78,7 +78,7 @@ MonoBehaviour:
     - {fileID: -7853437696725984835, guid: 9447f4d7cacc54b8a97bde0ee149f7ef, type: 3}
     choiceImages:
     - {fileID: 1543887795679765735, guid: 78543dd23fe1b4cd984df372722d4891, type: 3}
-    - {fileID: 0}
+    - {fileID: 2134965057069712462, guid: b42f28541a45545efa598ce908e2978d, type: 3}
     - {fileID: -5480656304308265430, guid: 69d7286e462b54310951f42d9f2c1ef0, type: 3}
     postChoiceFrames: []
   mainMenuBackground: {fileID: -9114789695211296444, guid: 7019e59fba4434735bbc946893b3246d, type: 3}

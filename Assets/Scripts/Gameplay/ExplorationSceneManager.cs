@@ -29,6 +29,9 @@ public class ExplorationSceneManager : MonoBehaviour
     private const float GuardCatchDistance = 1.15f;
     private const float GuardMeterFarDistance = 24f;
     private const int MaxRearSoundIndicators = 3;
+    private const float SpawnGroundProbeHeight = 120f;
+    private const float SpawnGroundProbeDistance = 240f;
+    private const float SpawnGroundOffset = 0.15f;
 
     [Header("UI")]
     public TMP_Text   instructionText;
@@ -134,16 +137,20 @@ public class ExplorationSceneManager : MonoBehaviour
             ApplyDemoLighting(demoScene);
         }
 
+        yield return null;
+        Physics.SyncTransforms();
+
         // Camera / AudioListener / AudioSource suppression already handled in OnSceneLoaded.
 
         _player = FindFirstObjectByType<FirstPersonController>();
         if (_player != null)
         {
-            _playerStartPos = _player.transform.position;
             _playerStartRot = _player.transform.rotation;
             _playerCameraStartLocalRot = _player.cameraTransform != null
                 ? _player.cameraTransform.localRotation
                 : Quaternion.identity;
+            _playerStartPos = FindSafePlayerStartPosition(_player.transform.position);
+            RespawnPlayerAtStart(true);
         }
 
         _zones        = FindObjectsByType<JumpPassZone>(FindObjectsSortMode.None);
@@ -388,6 +395,43 @@ public class ExplorationSceneManager : MonoBehaviour
             return hit.point;
 
         return position;
+    }
+
+    private Vector3 FindSafePlayerStartPosition(Vector3 position)
+    {
+        Vector3 origin = new Vector3(
+            position.x,
+            Mathf.Max(position.y + SpawnGroundProbeHeight, SpawnGroundProbeHeight),
+            position.z);
+        RaycastHit[] hits = Physics.RaycastAll(
+            origin,
+            Vector3.down,
+            SpawnGroundProbeDistance,
+            ~0,
+            QueryTriggerInteraction.Ignore);
+
+        float closestDistance = float.PositiveInfinity;
+        Vector3 groundPoint = position;
+        bool foundGround = false;
+
+        for (int i = 0; i < hits.Length; i++)
+        {
+            Transform hitTransform = hits[i].transform;
+            if (_player != null && hitTransform != null &&
+                (hitTransform == _player.transform || hitTransform.IsChildOf(_player.transform)))
+                continue;
+            if (hits[i].normal.y < 0.35f)
+                continue;
+
+            if (hits[i].distance < closestDistance)
+            {
+                closestDistance = hits[i].distance;
+                groundPoint = hits[i].point;
+                foundGround = true;
+            }
+        }
+
+        return foundGround ? groundPoint + Vector3.up * SpawnGroundOffset : position;
     }
 
     private void OnContinueClicked()

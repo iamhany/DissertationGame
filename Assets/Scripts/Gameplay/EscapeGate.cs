@@ -19,13 +19,13 @@ public class EscapeGate : MonoBehaviour
     public float pillarHeight = 80f;
     public float pillarRadius = 1.1f;
     [Range(0.05f, 0.6f)]
-    public float pillarAlpha = 0.32f;
+    public float pillarAlpha = 0.42f;
 
     private Transform _player;
     private bool      _triggered;
 
     // ── Built at runtime ──────────────────────────────────────────────────────
-    private Renderer _pillarRenderer;
+    private Material _pillarMaterial;
 
     void Start()
     {
@@ -54,33 +54,40 @@ public class EscapeGate : MonoBehaviour
 
     private void BuildVisual()
     {
-        // ── 3D pillar mesh ────────────────────────────────────────────────────
-        var pillarGO = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        pillarGO.name = "GatePillar";
-        pillarGO.transform.SetParent(transform, false);
-        pillarGO.transform.localPosition = Vector3.up * (pillarHeight * 0.5f);
-        pillarGO.transform.localScale = new Vector3(pillarRadius * 2f, pillarHeight * 0.5f, pillarRadius * 2f);
+        _pillarMaterial = CreatePillarMaterial();
 
-        var collider = pillarGO.GetComponent<Collider>();
-        if (collider != null) Destroy(collider);
-
-        _pillarRenderer = pillarGO.GetComponent<Renderer>();
-        if (_pillarRenderer != null)
+        for (int i = 0; i < 3; i++)
         {
-            _pillarRenderer.material = CreatePillarMaterial();
-            _pillarRenderer.shadowCastingMode = ShadowCastingMode.Off;
-            _pillarRenderer.receiveShadows = false;
+            var beamGO = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            beamGO.name = $"GateLightBeam_{i + 1}";
+            beamGO.transform.SetParent(transform, false);
+            beamGO.transform.localPosition = Vector3.up * (pillarHeight * 0.5f);
+            beamGO.transform.localRotation = Quaternion.Euler(0f, i * 60f, 0f);
+            beamGO.transform.localScale = new Vector3(pillarRadius * 4.5f, pillarHeight, 1f);
+
+            var collider = beamGO.GetComponent<Collider>();
+            if (collider != null) Destroy(collider);
+
+            var renderer = beamGO.GetComponent<Renderer>();
+            if (renderer == null) continue;
+
+            renderer.sharedMaterial = _pillarMaterial;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
         }
 
     }
 
     private Material CreatePillarMaterial()
     {
-        var shader = Shader.Find("Universal Render Pipeline/Unlit") ??
-                     Shader.Find("Unlit/Color") ??
-                     Shader.Find("Legacy Shaders/Transparent/Diffuse");
+        var shader = Shader.Find("Sprites/Default") ??
+                     Shader.Find("Universal Render Pipeline/Unlit") ??
+                     Shader.Find("Unlit/Transparent") ??
+                     Shader.Find("Legacy Shaders/Transparent/Diffuse") ??
+                     Shader.Find("Standard");
         var material = new Material(shader);
         var colour = new Color(pillarColour.r, pillarColour.g, pillarColour.b, pillarAlpha);
+        material.mainTexture = CreateBeamTexture();
 
         if (material.HasProperty("_BaseColor"))
             material.SetColor("_BaseColor", colour);
@@ -89,6 +96,8 @@ public class EscapeGate : MonoBehaviour
 
         if (material.HasProperty("_Surface"))
             material.SetFloat("_Surface", 1f);
+        if (material.HasProperty("_Mode"))
+            material.SetFloat("_Mode", 3f);
         if (material.HasProperty("_SrcBlend"))
             material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
         if (material.HasProperty("_DstBlend"))
@@ -96,8 +105,35 @@ public class EscapeGate : MonoBehaviour
         if (material.HasProperty("_ZWrite"))
             material.SetFloat("_ZWrite", 0f);
         material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+        material.EnableKeyword("_ALPHABLEND_ON");
         material.renderQueue = (int)RenderQueue.Transparent;
         return material;
+    }
+
+    private Texture2D CreateBeamTexture()
+    {
+        const int width = 64;
+        const int height = 128;
+        var texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+        texture.name = "GateLightBeamTexture";
+        texture.wrapMode = TextureWrapMode.Clamp;
+        texture.filterMode = FilterMode.Bilinear;
+
+        Color clear = new Color(1f, 1f, 1f, 0f);
+        for (int y = 0; y < height; y++)
+        {
+            float vertical = Mathf.Sin((y / (height - 1f)) * Mathf.PI);
+            for (int x = 0; x < width; x++)
+            {
+                float centeredX = Mathf.Abs((x / (width - 1f)) * 2f - 1f);
+                float core = Mathf.Clamp01(1f - centeredX);
+                float alpha = Mathf.Pow(core, 2.2f) * Mathf.Lerp(0.35f, 1f, vertical);
+                texture.SetPixel(x, y, alpha > 0.01f ? new Color(1f, 1f, 1f, alpha) : clear);
+            }
+        }
+
+        texture.Apply(false, true);
+        return texture;
     }
 
     void OnDrawGizmos()

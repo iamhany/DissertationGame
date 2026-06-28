@@ -57,6 +57,7 @@ public class EndingController : MonoBehaviour
 
     private EndingData _ending;
     private bool _advanceRequested;
+    private bool _exitMenuChoiceMade;
 
     void Start()
     {
@@ -182,9 +183,18 @@ public class EndingController : MonoBehaviour
         var audioManager = AudioManager.EnsureExists();
         audioManager?.PlayQuietNightMusic();
         audioManager?.PlayTeleportOnce("ending_intro");
+        _advanceRequested = false;
         yield return endingImageDisplay.FadeTo(imageLibrary.endingImages[imageIndex]);
-        yield return WaitForAdvance();
-        audioManager?.FadeOutTeleport();
+
+        float holdTime = endingImageDisplay != null ? endingImageDisplay.slideshowHoldTime : 2.5f;
+        yield return new WaitForSeconds(holdTime);
+
+        const float teleportExtraPlayTime = 1.0f;
+        const float teleportFadeDuration = 0.6f;
+        yield return new WaitForSeconds(teleportExtraPlayTime);
+        audioManager?.FadeOutTeleport(teleportFadeDuration);
+        yield return new WaitForSeconds(teleportFadeDuration);
+        _advanceRequested = false;
     }
 
     private IEnumerator RunParadoxSequence()
@@ -404,6 +414,8 @@ public class EndingController : MonoBehaviour
 
     private void ConfigureExitMenu()
     {
+        _exitMenuChoiceMade = false;
+        SetExitButtonsInteractable(true);
         if (exitMenuPanel    != null) exitMenuPanel.SetActive(false);
         if (exitQuestionText != null) exitQuestionText.text = "Are you having second thoughts?";
 
@@ -420,19 +432,48 @@ public class EndingController : MonoBehaviour
         }
     }
 
-    private static void OnQuitClicked()
+    private void OnQuitClicked()
     {
+        if (_exitMenuChoiceMade) return;
+        _exitMenuChoiceMade = true;
+        SetExitButtonsInteractable(false);
+        AudioManager.EnsureExists()?.FadeOutTeleport();
+        StartCoroutine(QuitAfterTeleportFade());
+    }
+
+    private void OnRestartClicked()
+    {
+        if (_exitMenuChoiceMade) return;
+        _exitMenuChoiceMade = true;
+        SetExitButtonsInteractable(false);
+
+        var audioManager = AudioManager.EnsureExists();
+        audioManager?.PlayTeleportOnce("take_me_back");
+        StartCoroutine(RestartAfterTeleportFade());
+    }
+
+    private void SetExitButtonsInteractable(bool interactable)
+    {
+        if (restartButton != null) restartButton.interactable = interactable;
+        if (quitButton != null) quitButton.interactable = interactable;
+    }
+
+    private IEnumerator RestartAfterTeleportFade()
+    {
+        yield return new WaitForSeconds(0.25f);
+        AudioManager.EnsureExists()?.FadeOutTeleport(0.7f);
+        yield return new WaitForSeconds(0.75f);
+        GameManager.Instance.RestartGame();
+    }
+
+    private IEnumerator QuitAfterTeleportFade()
+    {
+        yield return new WaitForSeconds(0.7f);
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #else
         Application.Quit();
 #endif
-    }
-
-    private static void OnRestartClicked()
-    {
-        AudioManager.EnsureExists()?.PlayTeleportOnce("take_me_back");
-        GameManager.Instance.RestartGame();
     }
 
     private IEnumerator ShowExitMenuDelayed(float delay)
